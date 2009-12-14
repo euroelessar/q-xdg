@@ -21,9 +21,23 @@
 
 class QString;
 
+/**
+  @file xdgthemechooser.h
+
+  Global functions used to retrieve default themes for various desktop
+  environments, as well as their associated function type.
+*/
+
+/**
+  Function type for theme chooser functions. They are used in
+  <code>XdgIconManager</code> rules to match the <code>DESKTOP_SESSION</code>
+  environment variable to the chooser logic to be used for the running desktop
+  environment.
+*/
 typedef QString (*XdgThemeChooser)();
 
 extern QString xdgGetKdeTheme();
 extern QString xdgGetGnomeTheme();
+extern QString xdgGetXfceTheme();
 
 #endif // XDGTHEMECHOOSER_H

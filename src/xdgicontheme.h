@@ -32,7 +32,7 @@
 class XdgIconThemePrivate;
 
 /**
-  \brief Icon theme, responsible for retrieving icons by name and size
+  @brief Icon theme, responsible for retrieving icons by name and size
 */
 class XdgIconTheme
 {

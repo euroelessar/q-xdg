@@ -29,7 +29,7 @@
 class XdgIconManagerPrivate;
 
 /**
-  \brief Enumerate and retrieve installed themes
+  @brief Enumerate and retrieve installed themes
 */
 class XdgIconManager
 {

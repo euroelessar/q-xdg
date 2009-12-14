@@ -24,7 +24,7 @@
 class XdgIconTheme;
 
 /**
-  \brief <code>QIcon</code> implementation backed by a theme
+  @brief <code>QIcon</code> implementation backed by a theme
 
   An implementation of <code>QIcon</code> used by Q-XDG to retrieve icons
   based on a certain theme. Creating an instance of this class is equivalent
