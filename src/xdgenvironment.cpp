@@ -49,8 +49,8 @@ XdgEnvironment::~XdgEnvironment()
 /**
   Returns the directory for per-user application-specific data.
 
-  @arg Windows: Returns <code>%APPDATA%</code> (usually
-    <code>C:\\Documents and Settings\\Application Data</code>).
+  @arg Windows: Returns <code>\%APPDATA\%</code> (usually
+    <code>C:\\Documents and Settings\\(user name)\\Application Data</code>).
   @arg Mac: Returns <code>$XDG_DATA_HOME</code> if the variable exists,
     otherwise <code>$HOME/Library/Preferences</code>.
   @arg Unix: Returns <code>$XDG_DATA_HOME</code> if the variable exists,
@@ -73,8 +73,8 @@ QDir XdgEnvironment::dataHome()
   Returns the directory for per-user configuration files. This is the directory
   used by <code>QSettings</code> to store its ini-format configuration files.
 
-  @arg Windows: Returns <code>%APPDATA%</code> (usually
-    <code>C:\\Documents and Settings\\Application Data</code>).
+  @arg Windows: Returns <code>\%APPDATA\%</code> (usually
+    <code>C:\\Documents and Settings\\(user name)\\Application Data</code>).
   @arg Mac: Returns <code>$XDG_CONFIG_HOME</code> if the variable exists,
     otherwise <code>$HOME/Library/Preferences</code>.
   @arg Unix: Returns <code>$XDG_CONFIG_HOME</code> if the variable exists,
@@ -117,8 +117,8 @@ QList<QDir> XdgEnvironment::dataDirs()
 /**
   Returns the list of directories for system application-specific configuration.
 
-  @arg Windows: Returns the directory where the application executable
-    resides.
+  @arg Windows: Returns <code>\%COMMON_APPDATA\%</code> (usually
+    <code>C:\\Documents and Settings\\All Users\\Application Data</code>).
   @arg Mac: Returns the <code>/Library/Preferences</code> directory.
   @arg Unix: Returns <code>$XDG_CONFIG_DIRS</code> if the variable exists,
     otherwise <code>/etc/xdg</code>.
