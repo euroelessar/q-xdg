@@ -22,9 +22,15 @@
 #include "xdgiconmanager.h"
 #include <QtCore/QSet>
 
+/**
+  @private
+*/
 inline uint qHash(const QRegExp &regexp)
 { return qHash(regexp.pattern()); }
 
+/**
+  @private
+*/
 class XdgIconManagerPrivate : public QSharedData
 {
 public:
