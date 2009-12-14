@@ -46,6 +46,16 @@ XdgEnvironment::~XdgEnvironment()
 {
 }
 
+/**
+  Returns the directory for per-user application-specific data.
+
+  \arg Windows: Returns <code>%APPDATA%</code> (usually
+    <code>C:\\Documents and Settings\\Application Data</code>).
+  \arg Mac: Returns <code>$XDG_DATA_HOME</code> if the variable exists,
+    otherwise <code>$HOME/Library/Preferences</code>.
+  \arg Unix: Returns <code>$XDG_DATA_HOME</code> if the variable exists,
+    otherwise <code>$HOME/.local/share</code>.
+*/
 QDir XdgEnvironment::dataHome()
 {
 #ifdef Q_WS_WIN
@@ -59,6 +69,17 @@ QDir XdgEnvironment::dataHome()
 #endif
 }
 
+/**
+  Returns the directory for per-user configuration files. This is the directory
+  used by <code>QSettings</code> to store its ini-format configuration files.
+
+  \arg Windows: Returns <code>%APPDATA%</code> (usually
+    <code>C:\\Documents and Settings\\Application Data</code>).
+  \arg Mac: Returns <code>$XDG_CONFIG_HOME</code> if the variable exists,
+    otherwise <code>$HOME/Library/Preferences</code>.
+  \arg Unix: Returns <code>$XDG_CONFIG_HOME</code> if the variable exists,
+    otherwise <code>$HOME/.config</code>.
+*/
 QDir XdgEnvironment::configHome()
 {
 #ifdef Q_WS_WIN
@@ -72,6 +93,15 @@ QDir XdgEnvironment::configHome()
 #endif
 }
 
+/**
+  Returns the list of directories for system application-specific data.
+
+  \arg Windows and Mac: Returns the directory where the application executable
+    resides.
+  \arg Unix: Returns <code>$XDG_DATA_DIRS</code> if the variable exists,
+    otherwise a list consisting of <code>/usr/local/share</code> and
+    <code>/usr/share</code>.
+*/
 QList<QDir> XdgEnvironment::dataDirs()
 {
 #if defined(Q_WS_WIN) || defined (Q_WS_MAC)
@@ -84,6 +114,15 @@ QList<QDir> XdgEnvironment::dataDirs()
 #endif
 }
 
+/**
+  Returns the list of directories for system application-specific configuration.
+
+  \arg Windows: Returns the directory where the application executable
+    resides.
+  \arg Mac: Returns the <code>/Library/Preferences</code> directory.
+  \arg Unix: Returns <code>$XDG_CONFIG_DIRS</code> if the variable exists,
+    otherwise <code>/etc/xdg</code>.
+*/
 QList<QDir> XdgEnvironment::configDirs()
 {
 #ifdef Q_WS_WIN
@@ -92,7 +131,7 @@ QList<QDir> XdgEnvironment::configDirs()
     return list;
 #elif defined(Q_WS_MAC)
     QList<QDir> list;
-    list.append(QDir("/Library/Preferences"));
+    list.append(QDir(QLatin1String("/Library/Preferences")));
     return list;
 #else
     return splitDirList(getValue("XDG_CONFIG_DIRS",
