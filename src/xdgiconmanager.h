@@ -45,7 +45,7 @@ public:
 
     QStringList themeNames() const;
     QStringList themeIds() const;
-protected:
+private:
     QSharedDataPointer<XdgIconManagerPrivate> d;
 };
 

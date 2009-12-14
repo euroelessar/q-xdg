@@ -24,4 +24,29 @@
 #include "xdgiconmanager.h"
 #include "xdgthemechooser.h"
 
+/**
+  \mainpage Q-XDG Library Overview
+
+  \section intro Introduction
+
+  Q-XDG implements support for the freedesktop.org (XDG) Base Directory and
+  Icon Theme specifications. You can use it in your Qt4-based software if you
+  need support for icon themes compatible with X desktop environments, such as
+  GNOME or KDE.
+
+  \section usage_env Usage: Environment
+
+  The <code>XdgEnvironment</code> class can be used independently of others.
+  Its static methods return configuration and data paths dictated by the XDG
+  Base Directory Specification. See documentation for that class for more
+  details.
+
+  \section usage_icon Usage: Icon Themes
+
+  The <code>XdgIconManager</code> class manages the list of available icon
+  themes installed in the system. You can use it to retrieve
+  <code>XdgIconTheme</code> objects, which represent concrete themes and can
+  in turn be used to get icons of different sizes.
+*/
+
 #endif // XDG_H

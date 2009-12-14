@@ -19,6 +19,7 @@
 #include <limits>
 #include <QtCore/QSettings>
 #include "xdgicontheme_p.h"
+#include "xdgicon.h"
 
 namespace
 {

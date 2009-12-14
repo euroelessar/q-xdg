@@ -21,8 +21,6 @@
 
 class QString;
 
-// FIXME: Rename functions to more appropriate
-
 typedef QString (*XdgThemeChooser)();
 
 extern QString xdgGetKdeTheme();
