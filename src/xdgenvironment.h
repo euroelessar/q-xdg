@@ -24,6 +24,12 @@
 #include <QtCore/QMap>
 #include <QtCore/QProcess>
 
+/**
+  \brief XDG base directories (<code>XDG_DATA_HOME</code> and others)
+
+  A purely static class that returns paths to data and configuration
+  directories as dictated by the freedesktop.org Base Directory Specification.
+*/
 class XdgEnvironment
 {
     Q_DISABLE_COPY(XdgEnvironment)

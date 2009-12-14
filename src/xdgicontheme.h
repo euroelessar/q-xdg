@@ -31,6 +31,9 @@
 
 class XdgIconThemePrivate;
 
+/**
+  \brief Icon theme, responsible for retrieving icons by name and size
+*/
 class XdgIconTheme
 {
     Q_DECLARE_PRIVATE_D(p, XdgIconTheme)
