@@ -58,6 +58,7 @@ public:
     { return getIcon(name).pixmap(size); }
 #endif
 private:
+    friend class XdgIcon;
     XdgIconThemePrivate *p;
     typedef XdgIconThemePrivate * Data;
     const Data &data() const { return p; }
