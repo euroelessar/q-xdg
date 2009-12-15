@@ -27,6 +27,7 @@ XdgIconManager::XdgIconManager(const QList<QDir> &appDirs) : d(new XdgIconManage
 {
     d->rules.insert(QRegExp(QLatin1String("gnome"), Qt::CaseInsensitive), &xdgGetGnomeTheme);
     d->rules.insert(QRegExp(QLatin1String("kde"), Qt::CaseInsensitive), &xdgGetKdeTheme);
+    d->rules.insert(QRegExp(QLatin1String("xfce"), Qt::CaseInsensitive), &xdgGetXfceTheme);
     d->init(appDirs);
 }
 
