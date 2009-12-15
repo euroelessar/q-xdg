@@ -39,7 +39,7 @@ class XdgIconTheme
     Q_DECLARE_PRIVATE_D(p, XdgIconTheme)
     Q_DISABLE_COPY(XdgIconTheme)
 public:
-    XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, const QString &indexFileName);
+    XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, const QString &indexFileName = QString());
     virtual ~XdgIconTheme();
 
     QString id() const;

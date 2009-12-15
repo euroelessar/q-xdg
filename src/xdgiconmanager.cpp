@@ -46,6 +46,7 @@ XdgIconManager &XdgIconManager::operator =(const XdgIconManager &other)
 void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
 {
     // Identify base directories
+    QLatin1String hicolorString("hicolor");
     QVector<QDir> basedirs;
     QDir basedir(QDir::home());
 
@@ -99,13 +100,21 @@ void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
         }
     }
 
-    const XdgIconTheme *hicolor = themeIdMap.value(QLatin1String("hicolor"));
+    const XdgIconTheme *hicolor = themeIdMap.value(hicolorString);
+
+    if (!hicolor) {
+        // create empty theme - hicolor will be guaranteed to always exist
+        XdgIconTheme *newTheme = new XdgIconTheme(basedirs, hicolorString);
+        themes.insert(hicolorString, newTheme);
+        themeIdMap.insert(hicolorString, newTheme);
+        hicolor = newTheme;
+    }
 
     // Resolve dependencies
     for(QMap<QString, XdgIconTheme*>::iterator it = themes.begin(); it != themes.end(); ++it) {
         XdgIconTheme &theme = *it.value();
 
-        if (theme.id() == QLatin1String("hicolor"))
+        if (theme.id() == hicolorString)
             continue;
 
         if (theme.parentNames().isEmpty()) {
@@ -131,11 +140,8 @@ void XdgIconManager::installRule(const QRegExp &regexp, XdgThemeChooser chooser)
     d->rules.insert(regexp, chooser);
 }
 
-const XdgIconTheme *XdgIconManager::defaultTheme(const QString &xdgSession) const
+const XdgIconTheme *XdgIconManager::defaultTheme() const
 {
-    // What is xdgSession?.. Can't understand logic
-    Q_UNUSED(xdgSession);
-
     XdgThemeChooser chooser = 0;
     if (qgetenv("KDE_FULL_SESSION") == "true")
         chooser = &xdgGetKdeTheme;

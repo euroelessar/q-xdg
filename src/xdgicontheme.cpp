@@ -183,19 +183,27 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
 
     d->id = id;
     d->basedirs = basedirs;
+
+    if (indexFileName.isEmpty()) {
+        // create an empty theme with defaults
+        d->name = id;
+        return;
+    }
+
     QSettings settings(indexFileName, QSettings::IniFormat);
 
     settings.beginGroup(QLatin1String("Icon Theme"));
+    d->name = settings.value(QLatin1String("Name")).toString();
     d->parentNames = settings.value(QLatin1String("Inherits")).toStringList();
     QStringList subdirList = settings.value(QLatin1String("Directories")).toStringList();
     settings.endGroup();
 
-    for (QListIterator<QString> it(subdirList); it.hasNext();) {
+    foreach (QString subdir, subdirList) {
         // The defaults are dictated by the FDO specification
         d->subdirs.append(XdgIconDir());
         XdgIconDir &dirdata = d->subdirs.last();
 
-        dirdata.path = it.next();
+        dirdata.path = subdir;
         settings.beginGroup(dirdata.path);
         dirdata.size = settings.value(QLatin1String("Size")).toUInt();
         dirdata.maxsize = settings.value(QLatin1String("MaxSize"), dirdata.size).toUInt();

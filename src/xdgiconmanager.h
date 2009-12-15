@@ -42,7 +42,7 @@ public:
 
     void clearRules();
     void installRule(const QRegExp &regexp, XdgThemeChooser chooser);
-    const XdgIconTheme *defaultTheme(const QString &xdgSession = QString()) const;
+    const XdgIconTheme *defaultTheme() const;
     const XdgIconTheme *themeByName(const QString &themeName) const;
     const XdgIconTheme *themeById(const QString &themeId) const;
 
