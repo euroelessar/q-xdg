@@ -33,6 +33,9 @@ class XdgIconThemePrivate;
 
 /**
   @brief Icon theme, responsible for retrieving icons by name and size
+
+  Represents an icon theme installed in the system. It can look up icons by name
+  and size, returning paths to image files, pixmap or icon objects.
 */
 class XdgIconTheme
 {
@@ -44,16 +47,34 @@ public:
 
     QString id() const;
     QString name() const;
-    QStringList parentNames() const;
+    QStringList parentIds() const;
 
     void addParent(const XdgIconTheme *parent);
     QString getIconPath(const QString &name, uint size = 22) const;
 
 #ifdef QT_GUI_LIB
+    /**
+      Returns an icon with the specified name (e.g. "document-new").
+    */
     inline QIcon getIcon(const QString &name) const
     { return XdgIcon(name, this); }
+
+    /**
+      Convenience function.
+
+      Returns a pixmap with the specified name (e.g. "document-new") and size
+      (in pixels).
+    */
     inline QPixmap getPixmap(const QString &name, int size) const
     { return getIcon(name).pixmap(size); }
+
+    /**
+      Convenience function.
+
+      Returns a pixmap with the specified name (e.g. "document-new") and size
+      (in pixels). The pixmap can be smaller than the requested size if it is
+      not square, but never larger.
+    */
     inline QPixmap getPixmap(const QString &name, QSize size) const
     { return getIcon(name).pixmap(size); }
 #endif

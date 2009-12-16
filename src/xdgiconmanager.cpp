@@ -135,12 +135,12 @@ void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
         if (theme.id() == hicolorString)
             continue;
 
-        if (theme.parentNames().isEmpty()) {
+        if (theme.parentIds().isEmpty()) {
             theme.addParent(hicolor);
             continue;
         }
 
-        foreach (QString parent, theme.parentNames()) {
+        foreach (QString parent, theme.parentIds()) {
             const XdgIconTheme *parentTheme = themeIdMap.value(parent);
             if(parentTheme)
                 theme.addParent(parentTheme);
