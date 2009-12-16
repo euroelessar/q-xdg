@@ -30,6 +30,11 @@ class XdgIconManagerPrivate;
 
 /**
   @brief Enumerate and retrieve installed themes
+
+  This class manages the list of icon themes installed in the system. When
+  created, it scans the directories for available themes, and then allows
+  querying themes (<code>XdgIconTheme</code> objects) by name or string
+  identifier, or getting the system default theme.
 */
 class XdgIconManager
 {
