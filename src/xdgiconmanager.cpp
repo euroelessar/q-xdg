@@ -228,16 +228,48 @@ const XdgIconTheme *XdgIconManager::themeById(const QString &themeName) const
 
 /**
   Returns a list of all human-readable theme names known to the system.
+
+  @arg showHidden: Whether to return themes flagged as hidden. (Default: false)
 */
-QStringList XdgIconManager::themeNames() const
+QStringList XdgIconManager::themeNames(bool showHidden) const
 {
-    return QStringList(d->themes.keys());
+    if (showHidden) {
+        return QStringList(d->themes.keys());
+    }
+
+    QStringList out;
+
+    foreach (QString themeName, d->themes.keys()) {
+        const XdgIconTheme *theme = themeByName(themeName);
+
+        if (theme && !theme->hidden()) {
+            out.append(themeName);
+        }
+    }
+
+    return out;
 }
 
 /**
   Returns a list of all theme IDs known to the system.
+
+  @arg showHidden: Whether to return themes flagged as hidden. (Default: false)
 */
-QStringList XdgIconManager::themeIds() const
+QStringList XdgIconManager::themeIds(bool showHidden) const
 {
-    return QStringList(d->themeIdMap.keys());
+    if (showHidden) {
+        return QStringList(d->themeIdMap.keys());
+    }
+
+    QStringList out;
+
+    foreach (QString themeId, d->themes.keys()) {
+        const XdgIconTheme *theme = themeById(themeId);
+
+        if (theme && !theme->hidden()) {
+            out.append(themeId);
+        }
+    }
+
+    return out;
 }

@@ -42,7 +42,7 @@ set(QXDG_PRIVATE_HEADERS
     src/xdgiconengine_p.h
 )
 
-set(TEST_SOURCES main.cpp)
+set(TEST_SOURCES test/main.cpp)
 
 qt4_automoc(${QXDG_SOURCES} ${TEST_SOURCES})
 add_library(q-xdg SHARED ${QXDG_SOURCES} ${QXDG_HEADERS} ${QXDG_PRIVATE_HEADERS})

@@ -51,8 +51,8 @@ public:
     const XdgIconTheme *themeByName(const QString &themeName) const;
     const XdgIconTheme *themeById(const QString &themeId) const;
 
-    QStringList themeNames() const;
-    QStringList themeIds() const;
+    QStringList themeNames(bool showHidden = false) const;
+    QStringList themeIds(bool showHidden = false) const;
 private:
     QSharedDataPointer<XdgIconManagerPrivate> d;
 };
