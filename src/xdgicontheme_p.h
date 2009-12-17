@@ -81,6 +81,8 @@ class XdgIconThemePrivate
 public:
     QString id;
     QString name;
+    QString example;
+    bool hidden;
     QVector<QDir> basedirs;
     QStringList parentNames;
     QVector<XdgIconDir> subdirs;

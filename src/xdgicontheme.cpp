@@ -194,6 +194,8 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
 
     d->id = id;
     d->basedirs = basedirs;
+    d->hidden = false;
+    d->example = QString();
 
     if (indexFileName.isEmpty()) {
         // create an empty theme with defaults
@@ -205,6 +207,8 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
 
     settings.beginGroup(QLatin1String("Icon Theme"));
     d->name = settings.value(QLatin1String("Name")).toString();
+    d->example = settings.value(QLatin1String("Example")).toString();
+    d->hidden = settings.value(QLatin1String("Hidden")).toBool();
     d->parentNames = settings.value(QLatin1String("Inherits")).toStringList();
     QStringList subdirList = settings.value(QLatin1String("Directories")).toStringList();
     settings.endGroup();
@@ -258,6 +262,26 @@ QString XdgIconTheme::id() const
 QString XdgIconTheme::name() const
 {
     return d_func()->name;
+}
+
+/**
+  Returns the XDG name (e.g. "document-new") of the icon that is supposed to
+  be an example of how the theme looks, or an empty string if the theme author
+  had none set. This setting is up to the application to honor.
+*/
+QString XdgIconTheme::exampleName() const
+{
+    return d_func()->example;
+}
+
+/**
+  Indicates whether the theme has the hidden flag, i.e. should not be visible
+  to the user in theme selection lists. This flag is up to the application to
+  honor. (Default: false)
+*/
+bool XdgIconTheme::hidden() const
+{
+    return d_func()->hidden;
 }
 
 /**

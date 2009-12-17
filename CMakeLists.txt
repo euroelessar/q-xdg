@@ -12,6 +12,9 @@ if(WITH_DOXYGEN)
     find_package(Doxygen)
 endif()
 
+set(QT_USE_QTCORE TRUE)
+set(QT_USE_QTGUI TRUE)
+include(${QT_USE_FILE})
 include_directories(${QT_INCLUDES} ${CMAKE_CURRENT_BINARY_DIR})
 add_definitions(${QT_DEFINITIONS})
 
@@ -47,7 +50,6 @@ target_link_libraries(q-xdg ${QT_QTCORE_LIBRARY})
 
 add_executable(qxdgtest ${TEST_SOURCES})
 target_link_libraries(qxdgtest ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} q-xdg)
-set_target_properties(qxdgtest PROPERTIES COMPILE_FLAGS "-DQT_GUI_LIB")
 add_dependencies(qxdgtest q-xdg)
 
 set_target_properties(q-xdg PROPERTIES VERSION ${XDG_LIB_VERSION} SOVERSION "0")

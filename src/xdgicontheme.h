@@ -47,6 +47,8 @@ public:
 
     QString id() const;
     QString name() const;
+    QString exampleName() const;
+    bool hidden() const;
     QStringList parentIds() const;
 
     void addParent(const XdgIconTheme *parent);
