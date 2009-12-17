@@ -79,7 +79,9 @@ public:
     { return getIcon(name).pixmap(size); }
 #endif
 private:
+#ifdef QT_GUI_LIB
     friend class XdgIcon;
+#endif
     XdgIconThemePrivate *p;
     typedef XdgIconThemePrivate * Data;
     const Data &data() const { return p; }
