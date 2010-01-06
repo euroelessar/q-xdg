@@ -20,3 +20,7 @@ to test installation without requiring root privileges), install with the
 DESTDIR make variable. For example, when calling from debian/rules:
 
     make install DESTDIR=$(CURDIR)/debian/tmp
+
+If you have Doxygen installed, API documentation will be built and installed
+alongside the library. To disable this behavior, pass the argument
+-DWITH_DOXYGEN=OFF when invoking cmake.

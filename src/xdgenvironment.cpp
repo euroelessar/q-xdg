@@ -16,8 +16,8 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <QCoreApplication>
 #include "xdgenvironment.h"
+#include <QtCore/QCoreApplication>
 
 namespace
 {
@@ -36,12 +36,6 @@ namespace
         QByteArray env = qgetenv(varName);
         return env.isEmpty() ? defValue : QString::fromLocal8Bit(env.constData(), env.size());
     }
-
-    inline QDir getWinDir(const QLatin1String &str)
-    {
-        return QDir(QString::fromLocal8Bit(qgetenv("appdata")) + QLatin1Char('\\')
-                    + QCoreApplication::applicationName() + str);
-    }
 }
 
 XdgEnvironment::XdgEnvironment()
@@ -52,40 +46,96 @@ XdgEnvironment::~XdgEnvironment()
 {
 }
 
+/**
+  Returns the directory for per-user application-specific data.
+
+  @arg Windows: Returns <code>\%APPDATA\%</code> (usually
+    <code>C:\\Documents and Settings\\(user name)\\Application Data</code>).
+  @arg Mac: Returns <code>$XDG_DATA_HOME</code> if the variable exists,
+    otherwise <code>$HOME/Library/Preferences</code>.
+  @arg Unix: Returns <code>$XDG_DATA_HOME</code> if the variable exists,
+    otherwise <code>$HOME/.local/share</code>.
+*/
 QDir XdgEnvironment::dataHome()
 {
-#ifdef Q_OS_WIN32
-    return getWinDir(QLatin1String(""));
+#ifdef Q_WS_WIN
+    return QDir(getValue("APPDATA", QDir::home()));
+#elif defined(Q_WS_MAC)
+    return QDir(getValue("XDG_DATA_HOME",
+                         QDir::home().absoluteFilePath(QLatin1String("Library/Preferences"))));
 #else
     return QDir(getValue("XDG_DATA_HOME",
                          QDir::home().absoluteFilePath(QLatin1String(".local/share"))));
 #endif
 }
 
+/**
+  Returns the directory for per-user configuration files. This is the directory
+  used by <code>QSettings</code> to store its ini-format configuration files.
+
+  @arg Windows: Returns <code>\%APPDATA\%</code> (usually
+    <code>C:\\Documents and Settings\\(user name)\\Application Data</code>).
+  @arg Mac: Returns <code>$XDG_CONFIG_HOME</code> if the variable exists,
+    otherwise <code>$HOME/Library/Preferences</code>.
+  @arg Unix: Returns <code>$XDG_CONFIG_HOME</code> if the variable exists,
+    otherwise <code>$HOME/.config</code>.
+*/
 QDir XdgEnvironment::configHome()
 {
-#ifdef Q_OS_WIN32
-    return getWinDir(QLatin1String("\\config"));
+#ifdef Q_WS_WIN
+    return QDir(getValue("APPDATA", QDir::home()));
+#elif defined(Q_WS_MAC)
+    return QDir(getValue("XDG_CONFIG_HOME",
+                         QDir::home().absoluteFilePath(QLatin1String("Library/Preferences"))));
+>>>>>>> ce482d8f9b3927f6e9aae7a079e9ab4632b9f08c:src/xdgenvironment.cpp
 #else
     return QDir(getValue("XDG_CONFIG_HOME",
                          QDir::home().absoluteFilePath(QLatin1String(".config"))));
 #endif
 }
 
+/**
+  Returns the list of directories for system application-specific data.
+
+  @arg Windows and Mac: Returns the directory where the application executable
+    resides.
+  @arg Unix: Returns <code>$XDG_DATA_DIRS</code> if the variable exists,
+    otherwise a list consisting of <code>/usr/local/share</code> and
+    <code>/usr/share</code>.
+*/
 QList<QDir> XdgEnvironment::dataDirs()
 {
-#ifdef Q_OS_WIN32
-    return QList<QDir>() << QDir(QCoreApplication::applicationDirPath());
+#if defined(Q_WS_WIN) || defined (Q_WS_MAC)
+    QList<QDir> list;
+    list.append(QDir(QCoreApplication::applicationDirPath()));
+    return list;
 #else
-    return splitDirList(getValue("XDG_DATA_DIRS", QLatin1String("/usr/local/share:/usr/share")));
+    return splitDirList(getValue("XDG_DATA_DIRS",
+                                 QLatin1String("/usr/local/share:/usr/share")));
 #endif
 }
 
+/**
+  Returns the list of directories for system application-specific configuration.
+
+  @arg Windows: Returns <code>\%COMMON_APPDATA\%</code> (usually
+    <code>C:\\Documents and Settings\\All Users\\Application Data</code>).
+  @arg Mac: Returns the <code>/Library/Preferences</code> directory.
+  @arg Unix: Returns <code>$XDG_CONFIG_DIRS</code> if the variable exists,
+    otherwise <code>/etc/xdg</code>.
+*/
 QList<QDir> XdgEnvironment::configDirs()
 {
-#ifdef Q_OS_WIN32
-    return QList<QDir>() << QDir(QCoreApplication::applicationDirPath() + QLatin1String("\\config"));
+#ifdef Q_WS_WIN
+    QList<QDir> list;
+    list.append(QDir(getValue("COMMON_APPDATA", QCoreApplication::applicationDirPath())));
+    return list;
+#elif defined(Q_WS_MAC)
+    QList<QDir> list;
+    list.append(QDir(QLatin1String("/Library/Preferences")));
+    return list;
 #else
-    return splitDirList(getValue("XDG_CONFIG_DIRS", QDir::home().absoluteFilePath(QLatin1String("/etc/xdg"))));
+    return splitDirList(getValue("XDG_CONFIG_DIRS",
+                                 QDir::home().absoluteFilePath(QLatin1String("/etc/xdg"))));
 #endif
 }

@@ -3,7 +3,7 @@
 #include <QtGui/QApplication>
 #include <QtGui/QIcon>
 #include <QtGui/QLabel>
-#include "src/xdg.h"
+#include "../src/xdg.h"
 
 int main(int argc, char** argv)
 {

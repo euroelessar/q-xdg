@@ -20,6 +20,7 @@
 #include <QtCore/QSettings>
 #include <QtCore/QSet>
 #include "xdgicontheme_p.h"
+#include "xdgicon.h"
 
 namespace
 {
@@ -231,6 +232,17 @@ uint XdgIconThemePrivate::dirSizeDistance(const XdgIconDir &dir, uint size)
     return 0;
 }
 
+/**
+  Creates a new icon theme with the specified list of base directories, ID, and
+  <code>index.theme</code> file. If the third parameter is empty or missing,
+  creates an empty theme with no subdirectories, looking up only fallback icons.
+
+  This constructor does not recursively create parent themes. To add parent
+  themes, use <code>addParent()</code> after creating the object.
+
+  You will most likely not need to create objects of this class directly.
+  Instead, use <code>XdgIconManager</code> to get references to themes.
+*/
 XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, const QString &indexFileName)
         : p(new XdgIconThemePrivate)
 {
@@ -238,19 +250,31 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
 
     d->id = id;
     d->basedirs = basedirs;
+    d->hidden = false;
+    d->example = QString();
+
+    if (indexFileName.isEmpty()) {
+        // create an empty theme with defaults
+        d->name = id;
+        return;
+    }
+
     QSettings settings(indexFileName, QSettings::IniFormat);
 
     settings.beginGroup(QLatin1String("Icon Theme"));
+    d->name = settings.value(QLatin1String("Name")).toString();
+    d->example = settings.value(QLatin1String("Example")).toString();
+    d->hidden = settings.value(QLatin1String("Hidden")).toBool();
     d->parentNames = settings.value(QLatin1String("Inherits")).toStringList();
     QStringList subdirList = settings.value(QLatin1String("Directories")).toStringList();
     settings.endGroup();
 
-    for (QListIterator<QString> it(subdirList); it.hasNext();) {
+    foreach (QString subdir, subdirList) {
         // The defaults are dictated by the FDO specification
         d->subdirs.append(XdgIconDir());
         XdgIconDir &dirdata = d->subdirs.last();
 
-        dirdata.path = it.next();
+        dirdata.path = subdir;
         settings.beginGroup(dirdata.path);
         dirdata.size = settings.value(QLatin1String("Size")).toUInt();
         dirdata.maxsize = settings.value(QLatin1String("MaxSize"), dirdata.size).toUInt();
@@ -268,26 +292,62 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
     }
 }
 
+/**
+  Destroys the theme object, invalidating icons created with it.
+*/
 XdgIconTheme::~XdgIconTheme()
 {
     delete p;
 }
 
+/**
+  Returns the theme ID (e.g. "gnome-noble").
+*/
 QString XdgIconTheme::id() const
 {
     return d_func()->id;
 }
 
+/**
+  Returns the human-readable theme name (e.g. "GNOME Noble").
+*/
 QString XdgIconTheme::name() const
 {
     return d_func()->name;
 }
 
-QStringList XdgIconTheme::parentNames() const
+/**
+  Returns the XDG name (e.g. "document-new") of the icon that is supposed to
+  be an example of how the theme looks, or an empty string if the theme author
+  had none set. This setting is up to the application to honor.
+*/
+QString XdgIconTheme::exampleName() const
+{
+    return d_func()->example;
+}
+
+/**
+  Indicates whether the theme has the hidden flag, i.e. should not be visible
+  to the user in theme selection lists. This flag is up to the application to
+  honor. (Default: false)
+*/
+bool XdgIconTheme::hidden() const
+{
+    return d_func()->hidden;
+}
+
+/**
+  Returns the list of parent theme IDs found in <code>index.theme</code>,
+  whether or not these parent themes were actually created.
+*/
+QStringList XdgIconTheme::parentIds() const
 {
     return d_func()->parentNames;
 }
 
+/**
+  Adds a parent theme to this theme.
+*/
 void XdgIconTheme::addParent(const XdgIconTheme *parent)
 {
     Q_D(XdgIconTheme);
@@ -296,6 +356,12 @@ void XdgIconTheme::addParent(const XdgIconTheme *parent)
         d->parents.append(parent);
 }
 
+/**
+  Looks up an icon file with the specified name (e.g. "document-new") and size,
+  and returns its full file path. The lookup algorithm involves scanning parent
+  themes and fallback icons if no match is found in the current theme, and is
+  described in detail in the XDG Icon Theme Specification on freedesktop.org.
+*/
 QString XdgIconTheme::getIconPath(const QString &name, uint size) const
 {
     Q_D(const XdgIconTheme);

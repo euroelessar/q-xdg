@@ -22,6 +22,9 @@
 #include <QtGui/QIconEngineV2>
 #include "xdgicontheme_p.h"
 
+/**
+  @private
+*/
 class XdgIconEngine : public QIconEngineV2
 {
 public:

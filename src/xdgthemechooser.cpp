@@ -23,50 +23,73 @@
 #include <QtCore/QTextStream>
 #include "xdgthemechooser.h"
 
-QString xdgGetGnomeTheme()
-{
-    QString themeName;
+namespace {
+    QString getGtkTheme(const QString& commandLine, const QString& fallback)
+    {
+        QString themeName;
 
-    QProcess process;
-    process.start(QLatin1String("gconftool-2 -g /desktop/gnome/interface/icon_theme"), QIODevice::ReadOnly);
+        QProcess process;
+        process.start(commandLine, QIODevice::ReadOnly);
 
-    if (process.waitForStarted()) {
-        QTextStream stream(&process);
+        if (process.waitForStarted()) {
+            QTextStream stream(&process);
 
-        while (process.waitForReadyRead())
-            themeName += stream.readAll();
+            while (process.waitForReadyRead())
+                themeName += stream.readAll();
 
-        themeName = themeName.trimmed();
-        process.close();
-        return themeName;
-    }
+            themeName = themeName.trimmed();
+            process.close();
+            return themeName;
+        }
 
-    // Attempt to read gtkrc
-    QFile file(QDir::home().absoluteFilePath(QLatin1String(".gtkrc-2.0")));
+        // Attempt to read gtkrc
+        QFile file(QDir::home().absoluteFilePath(QLatin1String(".gtkrc-2.0")));
 
-    if (file.exists()) {
-        file.open(QIODevice::ReadOnly);
-        QTextStream stream(&file);
-        QRegExp exp(QLatin1String("^\\s*gtk-icon-theme-name\\s*=(.*)"));
-        QString str;
+        if (file.exists()) {
+            file.open(QIODevice::ReadOnly);
+            QTextStream stream(&file);
+            QRegExp exp(QLatin1String("^\\s*gtk-icon-theme-name\\s*=(.*)"));
+            QString str;
 
-        while (!(str = stream.readLine()).isEmpty()) {
-            if (exp.indexIn(str) != -1) {
-                themeName = exp.cap(1).trimmed();
+            while (!(str = stream.readLine()).isEmpty()) {
+                if (exp.indexIn(str) != -1) {
+                    themeName = exp.cap(1).trimmed();
 
-                if ((themeName.startsWith('"') && themeName.endsWith('"'))
-                    || (themeName.startsWith('\'') && themeName.endsWith('\''))) {
-                    themeName = themeName.mid(1, themeName.length() - 2).trimmed();
+                    if ((themeName.startsWith('"') && themeName.endsWith('"'))
+                        || (themeName.startsWith('\'') && themeName.endsWith('\''))) {
+                        themeName = themeName.mid(1, themeName.length() - 2).trimmed();
+                    }
+
+                    return themeName;
                 }
-
-                return themeName;
             }
         }
-    }
 
-    return QLatin1String("gnome");
+        return fallback;
+    }
 }
 
+/**
+  Returns the user's chosen icon theme in the GNOME desktop environment.
+*/
+QString xdgGetGnomeTheme()
+{
+    return getGtkTheme(QLatin1String("gconftool-2 -g /desktop/gnome/interface/icon_theme"),
+                       QLatin1String("gnome"));
+}
+
+/**
+  Returns the user's chosen icon theme in the Xfce desktop environment.
+*/
+QString xdgGetXfceTheme()
+{
+    return getGtkTheme(QLatin1String("xfconf-query -c xsettings -p /Net/IconThemeName"),
+                       QLatin1String("Tango"));
+}
+
+/**
+  Returns the user's chosen icon theme in the KDE desktop environment.
+*/
 QString xdgGetKdeTheme()
 {
     QDir kdeHome;

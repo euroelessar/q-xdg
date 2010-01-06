@@ -29,6 +29,14 @@
 
 class XdgIconManagerPrivate;
 
+/**
+  @brief Enumerate and retrieve installed themes
+
+  This class manages the list of icon themes installed in the system. When
+  created, it scans the directories for available themes, and then allows
+  querying themes (<code>XdgIconTheme</code> objects) by name or string
+  identifier, or getting the system default theme.
+*/
 class XDG_API XdgIconManager
 {
 public:
@@ -40,13 +48,13 @@ public:
 
     void clearRules();
     void installRule(const QRegExp &regexp, XdgThemeChooser chooser);
-    const XdgIconTheme *defaultTheme(const QString &xdgSession = QString()) const;
+    const XdgIconTheme *defaultTheme() const;
     const XdgIconTheme *themeByName(const QString &themeName) const;
     const XdgIconTheme *themeById(const QString &themeId) const;
 
-    QStringList themeNames() const;
-    QStringList themeIds() const;
-protected:
+    QStringList themeNames(bool showHidden = false) const;
+    QStringList themeIds(bool showHidden = false) const;
+private:
     QSharedDataPointer<XdgIconManagerPrivate> d;
 };
 

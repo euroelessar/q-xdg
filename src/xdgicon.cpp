@@ -20,11 +20,19 @@
 #include "xdgiconengine_p.h"
 #include "xdgicontheme_p.h"
 
+/**
+  Creates an icon with the specified XDG name (e.g. <code>document-open</code>)
+  backed by the specified theme. The icon is invalidated if the theme is
+  destroyed. Equivalent to calling <code>XdgIconTheme::getIcon()</code>.
+*/
 XdgIcon::XdgIcon(const QString &name, const XdgIconTheme *theme)
         : QIcon(new XdgIconEngine(theme->data()->findIcon(name)))
 {
 }
 
+/**
+  Creates a copy of the specified <code>QIcon</code> with no special properties.
+*/
 XdgIcon::XdgIcon(const QIcon &other) : QIcon(other)
 {
 }
@@ -37,6 +45,9 @@ XdgIcon::~XdgIcon()
 {
 }
 
+/**
+  Makes this object a copy of the specified <code>XdgIcon</code>.
+*/
 XdgIcon &XdgIcon::operator =(const XdgIcon &other)
 {
     if (this != &other) {

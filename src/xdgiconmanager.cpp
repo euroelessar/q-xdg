@@ -23,30 +23,49 @@
 #include "xdgenvironment.h"
 #include "xdgiconmanager_p.h"
 
+/**
+  Creates a new icon manager that searches icons in base directories returned
+  by <code>XdgEnvironment::dataDirs()</code>.
+
+  @arg appDirs: Optional. Specifies custom directories to search for icons
+    and icon themes in, in addition to system default directories.
+*/
 XdgIconManager::XdgIconManager(const QList<QDir> &appDirs) : d(new XdgIconManagerPrivate)
 {
     d->rules.insert(QRegExp(QLatin1String("gnome"), Qt::CaseInsensitive), &xdgGetGnomeTheme);
     d->rules.insert(QRegExp(QLatin1String("kde"), Qt::CaseInsensitive), &xdgGetKdeTheme);
+    d->rules.insert(QRegExp(QLatin1String("xfce"), Qt::CaseInsensitive), &xdgGetXfceTheme);
     d->init(appDirs);
 }
 
+/**
+  Destroys the icon manager object.
+*/
 XdgIconManager::~XdgIconManager()
 {
 }
 
+/**
+  Copy constructor. Creates an icon manager object based on this one.
+*/
 XdgIconManager::XdgIconManager(const XdgIconManager &other) : d(other.d)
 {
 }
 
+/**
+  Assignment operator. Makes this icon manager object a copy of
+  <code>other</code>.
+*/
 XdgIconManager &XdgIconManager::operator =(const XdgIconManager &other)
 {
     d = other.d;
-	return *this;
+    return *this;
 }
 
 void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
 {
     // Identify base directories
+    QLatin1String hicolorString("hicolor");
     QVector<QDir> basedirs;
     QDir basedir(QDir::home());
 
@@ -100,21 +119,29 @@ void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
         }
     }
 
-    const XdgIconTheme *hicolor = themeIdMap.value(QLatin1String("hicolor"));
+    const XdgIconTheme *hicolor = themeIdMap.value(hicolorString);
+
+    if (!hicolor) {
+        // create empty theme - hicolor will be guaranteed to always exist
+        XdgIconTheme *newTheme = new XdgIconTheme(basedirs, hicolorString);
+        themes.insert(hicolorString, newTheme);
+        themeIdMap.insert(hicolorString, newTheme);
+        hicolor = newTheme;
+    }
 
     // Resolve dependencies
     for(QMap<QString, XdgIconTheme*>::iterator it = themes.begin(); it != themes.end(); ++it) {
         XdgIconTheme &theme = *it.value();
 
-        if (theme.id() == QLatin1String("hicolor"))
+        if (theme.id() == hicolorString)
             continue;
 
-        if (theme.parentNames().isEmpty()) {
+        if (theme.parentIds().isEmpty()) {
             theme.addParent(hicolor);
             continue;
         }
 
-        foreach (QString parent, theme.parentNames()) {
+        foreach (QString parent, theme.parentIds()) {
             const XdgIconTheme *parentTheme = themeIdMap.value(parent);
             if(parentTheme)
                 theme.addParent(parentTheme);
@@ -122,27 +149,42 @@ void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
     }
 }
 
+/**
+  Clears all rules that the icon manager uses to search for the default theme,
+  including default rules for X desktop environments.
+*/
 void XdgIconManager::clearRules()
 {
     d->rules.clear();
 }
 
+/**
+  Installs a rule (regular expression) for determining the current theme based
+  on the <code>DESKTOP_SESSION</code> environment variable. See
+  <code>defaultTheme()</code>.
+*/
 void XdgIconManager::installRule(const QRegExp &regexp, XdgThemeChooser chooser)
 {
     d->rules.insert(regexp, chooser);
 }
 
-const XdgIconTheme *XdgIconManager::defaultTheme(const QString &xdgSession) const
+/**
+  Returns the system default theme. The theme depends on the current platform
+  and desktop environment, and is determined in the following order:
+
+  @arg First, the <code>DESKTOP_SESSION</code> environment variable is matched
+    against installed rules (regular expressions). The first rule to match
+    determines the chooser function that will be used to get the theme ID.
+    By default, rules for GNOME, KDE and Xfce are installed.
+  @arg If this fails, specific environment variables for KDE and GNOME are
+    checked to be present.
+  @arg If nothing else works, the fallback "hicolor" theme is returned.
+
+  This function is guaranteed to always return a non-null theme object.
+*/
+const XdgIconTheme *XdgIconManager::defaultTheme() const
 {
-    // What is xdgSession?.. Can't understand logic
-    Q_UNUSED(xdgSession);
-
     XdgThemeChooser chooser = 0;
-    if (!qgetenv("KDE_FULL_SESSION").isEmpty())
-        chooser = &xdgGetKdeTheme;
-    else if (!qgetenv("GNOME_DESKTOP_SESSION_ID").isEmpty())
-        chooser = &xdgGetGnomeTheme;
-
     QByteArray env = qgetenv("DESKTOP_SESSION");
     QString session = QString::fromLocal8Bit(env, env.size());
 
@@ -156,25 +198,79 @@ const XdgIconTheme *XdgIconManager::defaultTheme(const QString &xdgSession) cons
         }
     }
 
-	return themeById((chooser ? *chooser : xdgGetKdeTheme)());
+    if(!chooser) {
+        if (qgetenv("KDE_FULL_SESSION") == "true")
+            chooser = &xdgGetKdeTheme;
+        else if (!qgetenv("GNOME_DESKTOP_SESSION_ID").isEmpty())
+            chooser = &xdgGetGnomeTheme;
+    }
+
+    return themeById(chooser ? (*chooser)() : QLatin1String("hicolor"));
 }
 
+/**
+  Returns a theme by its human-readable name (like "GNOME Noble"), or 0 if no
+  theme with this name was found.
+*/
 const XdgIconTheme *XdgIconManager::themeByName(const QString &themeName) const
 {
     return d->themes.value(themeName, 0);
 }
 
+/**
+  Returns a theme by its ID, or directory name (like "gnome-noble"), or 0 if no
+  theme with this ID was found. The ID "hicolor" is guaranteed to return a
+  non-null fallback theme.
+*/
 const XdgIconTheme *XdgIconManager::themeById(const QString &themeName) const
 {
     return d->themeIdMap.value(themeName, 0);
 }
 
-QStringList XdgIconManager::themeNames() const
+/**
+  Returns a list of all human-readable theme names known to the system.
+
+  @arg showHidden: Whether to return themes flagged as hidden. (Default: false)
+*/
+QStringList XdgIconManager::themeNames(bool showHidden) const
 {
-    return QStringList(d->themes.keys());
+    if (showHidden) {
+        return QStringList(d->themes.keys());
+    }
+
+    QStringList out;
+
+    foreach (QString themeName, d->themes.keys()) {
+        const XdgIconTheme *theme = themeByName(themeName);
+
+        if (theme && !theme->hidden()) {
+            out.append(themeName);
+        }
+    }
+
+    return out;
 }
 
-QStringList XdgIconManager::themeIds() const
+/**
+  Returns a list of all theme IDs known to the system.
+
+  @arg showHidden: Whether to return themes flagged as hidden. (Default: false)
+*/
+QStringList XdgIconManager::themeIds(bool showHidden) const
 {
-    return QStringList(d->themeIdMap.keys());
+    if (showHidden) {
+        return QStringList(d->themeIdMap.keys());
+    }
+
+    QStringList out;
+
+    foreach (QString themeId, d->themes.keys()) {
+        const XdgIconTheme *theme = themeById(themeId);
+
+        if (theme && !theme->hidden()) {
+            out.append(themeId);
+        }
+    }
+
+    return out;
 }

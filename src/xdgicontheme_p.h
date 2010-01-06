@@ -22,6 +22,9 @@
 #include "xdgicontheme.h"
 #include <QHash>
 
+/**
+  @private
+*/
 struct XdgIconDir
 {
     enum Type
@@ -39,6 +42,9 @@ struct XdgIconDir
     uint threshold;
 };
 
+/**
+  @private
+*/
 struct XdgIconEntry
 {
     inline XdgIconEntry() : dir(0) {}
@@ -47,6 +53,9 @@ struct XdgIconEntry
     QString path;
 };
 
+/**
+  @private
+*/
 class XdgIconData
 {
 public:
@@ -59,13 +68,21 @@ public:
     bool destroy();
 };
 
+/**
+  @private
+*/
 typedef QHash<QString, XdgIconData *> XdgIconDataHash;
 
+/**
+  @private
+*/
 class XdgIconThemePrivate
 {
 public:
     QString id;
     QString name;
+    QString example;
+    bool hidden;
     QVector<QDir> basedirs;
     QStringList parentNames;
     QVector<XdgIconDir> subdirs;
