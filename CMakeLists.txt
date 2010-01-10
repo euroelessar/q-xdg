@@ -45,7 +45,7 @@ set(QXDG_PRIVATE_HEADERS
 
 qt4_automoc(${QXDG_SOURCES} ${TEST_SOURCES})
 add_library(q-xdg SHARED ${QXDG_SOURCES} ${QXDG_HEADERS} ${QXDG_PRIVATE_HEADERS})
-set_target_properties(q-xdg PROPERTIES COMPILE_FLAGS "-DXD_LIBRARY")
+set_target_properties(q-xdg PROPERTIES COMPILE_FLAGS "-DXDG_LIBRARY")
 target_link_libraries(q-xdg ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY})
 
 if( NOT XDG_NOT_BUILD_TEST )
