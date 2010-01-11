@@ -59,7 +59,7 @@ XdgEnvironment::~XdgEnvironment()
 QDir XdgEnvironment::dataHome()
 {
 #ifdef Q_WS_WIN
-    return QDir(getValue("APPDATA", QDir::home()));
+    return QDir(getValue("APPDATA", QDir::homePath()));
 #elif defined(Q_WS_MAC)
     return QDir(getValue("XDG_DATA_HOME",
                          QDir::home().absoluteFilePath(QLatin1String("Library/Preferences"))));
@@ -83,11 +83,10 @@ QDir XdgEnvironment::dataHome()
 QDir XdgEnvironment::configHome()
 {
 #ifdef Q_WS_WIN
-    return QDir(getValue("APPDATA", QDir::home()));
+    return QDir(getValue("APPDATA", QDir::homePath()));
 #elif defined(Q_WS_MAC)
     return QDir(getValue("XDG_CONFIG_HOME",
                          QDir::home().absoluteFilePath(QLatin1String("Library/Preferences"))));
->>>>>>> ce482d8f9b3927f6e9aae7a079e9ab4632b9f08c:src/xdgenvironment.cpp
 #else
     return QDir(getValue("XDG_CONFIG_HOME",
                          QDir::home().absoluteFilePath(QLatin1String(".config"))));
