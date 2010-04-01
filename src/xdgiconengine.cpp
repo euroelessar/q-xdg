@@ -72,7 +72,7 @@ QPixmap XdgIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::State 
     if (entry) {
         QString key = QLatin1String("$xdg_icon_");
         // TODO: Think about how to use QIcon::State,
-        // Qt's default realization doesn't hold it
+		// Qt's default implementation doesn't hold it
 //        key += QString::number(state);
         key += QString::number(min);
         key += QString::number(QApplication::palette().cacheKey());

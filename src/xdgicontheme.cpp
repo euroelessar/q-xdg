@@ -136,7 +136,7 @@ XdgIconData *XdgIconThemePrivate::lookupIconRecursive(const QString &originName,
 
     if (!data) {
         foreach (const XdgIconTheme *parent, parents) {
-            data = parent->d_func()->lookupIconRecursive(name, themeSet);
+			data = parent->d_func()->lookupIconRecursive(originName, themeSet);
             if (data) {
                 saveToCache(originName, data);
                 break;
