@@ -19,9 +19,9 @@
 #include <limits>
 #include <QtCore/QSettings>
 #include <QtCore/QSet>
+#include <QtCore/QDirIterator>
 #include "xdgicontheme_p.h"
 #include "xdgicon.h"
-#include <QtCore/QDebug>
 
 namespace
 {
@@ -312,14 +312,12 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
             d->directoryMaps << map;
             continue;
         }
-        QDir::Filters filter(QDir::Dirs | QDir::NoDotAndDotDot);
-        foreach (const QString &size, dir.entryList(filter, QDir::Name)) {
-            QDir sizeDir(dir.absoluteFilePath(size));
-            foreach (const QString &type, sizeDir.entryList(filter, QDir::Name)) {
-                QDir typeDir(sizeDir.absoluteFilePath(type));
-                foreach (const QString &file, typeDir.entryList(QDir::Files | QDir::Readable, QDir::Name))
-                    map << dir.relativeFilePath(typeDir.absoluteFilePath(file));
-            }
+        QString dirPath = dir.absolutePath();
+        QDirIterator it(dirPath, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QString name = it.next();
+            if (it.fileInfo().isFile())
+                map << name.mid(dirPath.size() + 1);
         }
         map.sort();
         d->directoryMaps << map;
