@@ -21,6 +21,7 @@
 #include <QtCore/QSet>
 #include "xdgicontheme_p.h"
 #include "xdgicon.h"
+#include <QtCore/QDebug>
 
 namespace
 {
@@ -92,60 +93,72 @@ XdgIconData *XdgIconThemePrivate::lookupIconRecursive(const QString &originName,
         return data;
     themeSet.insert(this);
 
-    QString name = originName;
-    while (!name.isEmpty()) {
-        if (data = tryCache(name))
-            return data;
-
-        foreach (const XdgIconDir &dirdata, subdirs) {
-            QString path = id;
-            path += QLatin1Char('/');
-            path += dirdata.path;
-            path += QLatin1Char('/');
-            path += name;
-
-            for (int j = 0; j < basedirs.size(); j++) {
-                for (int k = 0; k < extCount; k++) {
-                    path += QLatin1String(exts[k]);
-                    QString filename = QDir(basedirs.at(j)).absoluteFilePath(path);
-
-                    if (QFile::exists(filename)) {
-                        if (!data) {
-                            data = new XdgIconData;
-                            data->theme = this;
-                            data->name = name;
-                        }
-                        path.chop(qstrlen(exts[k]));
-                        data->entries.append(XdgIconEntry(&dirdata, filename));
-                        break;
+    QString baseName = originName.section(QLatin1Char('-'), 0, 0);
+    for (int i = 0; i < directoryMaps.size(); i++) {
+        const QStringList &map = directoryMaps.at(i);
+        for (int j = 0; j < subdirs.size(); j++) {
+            const XdgIconDir &dirdata = subdirs.at(j);
+            QString iconPath = dirdata.path;
+            iconPath += QLatin1Char('/');
+            QString baseIconPath = iconPath;
+            iconPath += originName;
+            baseIconPath += baseName;
+            QStringList::const_iterator begin;
+            QStringList::const_iterator it;
+            begin = qLowerBound(map, baseIconPath);
+            if (begin == map.end())
+                continue;
+            it = qUpperBound(map, iconPath + '.');
+            for (; it >= begin; it--) {
+                QString name = it->section('/', -1, -1);
+                int index = name.lastIndexOf(QLatin1Char('.'));
+                if (index < 0)
+                    continue;
+                name.truncate(index);
+                if (name == originName
+                    || (name.size() < originName.size() 
+                        && originName.startsWith(name)
+                        && originName.at(name.size()) == '-')) {
+                    if (!data) {
+                        data = new XdgIconData;
+                        data->theme = this;
+                        data->name = name;
                     }
-                    path.chop(qstrlen(exts[k]));
+                    if (data->name.size() > name.size()) {
+                        continue;
+                    } else if (data->name.size() < name.size()) {
+                        data->name = name;
+                        data->entries.clear();
+                    }
+                    QString filePath = basedirs.at(i).absolutePath();
+                    filePath += QLatin1Char('/');
+                    filePath += id;
+                    filePath += QLatin1Char('/');
+                    filePath += *it;
+                    data->entries.append(XdgIconEntry(&dirdata, QDir::cleanPath(filePath)));
+                    break;
                 }
             }
         }
-        if (data) {
-            saveToCache(originName, data);
-            return data;
-        }
-        int pos = name.lastIndexOf(QLatin1Char('-'));
-        if (pos != -1)
-            name.truncate(pos);
-        else
-            break;
     }
 
     if (!data) {
         foreach (const XdgIconTheme *parent, parents) {
-			data = parent->d_func()->lookupIconRecursive(originName, themeSet);
-            if (data) {
-                saveToCache(originName, data);
+            data = parent->d_func()->lookupIconRecursive(originName, themeSet);
+            if (data)
                 break;
-            }
         }
     }
 
-    if (!data)
+    if (!data) {
         saveToCache(originName, 0);
+    } else {
+        QString name = originName;
+        while (name.size() >= data->name.size()) {
+            saveToCache(name, data);
+            name.truncate(name.lastIndexOf('-'));
+        }
+    }
 
     return data;
 }
@@ -269,7 +282,8 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
     QStringList subdirList = settings.value(QLatin1String("Directories")).toStringList();
     settings.endGroup();
 
-    foreach (QString subdir, subdirList) {
+    for (int i = 0; i < subdirList.size(); i++) {
+        const QString &subdir = subdirList.at(i);
         // The defaults are dictated by the FDO specification
         d->subdirs.append(XdgIconDir());
         XdgIconDir &dirdata = d->subdirs.last();
@@ -289,6 +303,26 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
             dirdata.type = XdgIconDir::Scalable;
         else
             dirdata.type = XdgIconDir::Threshold;
+    }
+
+    foreach (const QDir &basedir, basedirs) {
+        QStringList map;
+        QDir dir = basedir;
+        if (!dir.cd(id)) {
+            d->directoryMaps << map;
+            continue;
+        }
+        QDir::Filters filter(QDir::Dirs | QDir::NoDotAndDotDot);
+        foreach (const QString &size, dir.entryList(filter, QDir::Name)) {
+            QDir sizeDir(dir.absoluteFilePath(size));
+            foreach (const QString &type, sizeDir.entryList(filter, QDir::Name)) {
+                QDir typeDir(sizeDir.absoluteFilePath(type));
+                foreach (const QString &file, typeDir.entryList(QDir::Files | QDir::Readable, QDir::Name))
+                    map << dir.relativeFilePath(typeDir.absoluteFilePath(file));
+            }
+        }
+        map.sort();
+        d->directoryMaps << map;
     }
 }
 

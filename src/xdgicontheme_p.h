@@ -87,6 +87,7 @@ public:
     QStringList parentNames;
     QVector<XdgIconDir> subdirs;
     QVector<const XdgIconTheme *> parents;
+	QList<QStringList> directoryMaps;
     mutable XdgIconDataHash cache;
 
     XdgIconData *findIcon(const QString &name) const;
