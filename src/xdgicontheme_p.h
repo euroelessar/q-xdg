@@ -98,6 +98,8 @@ public:
     QString lookupFallbackIcon(const QString &name) const;
     static bool dirMatchesSize(const XdgIconDir &dir, uint size);
     static uint dirSizeDistance(const XdgIconDir &dir, uint size);
+	void ensureDirectoryMapsHelper();
+	inline void ensureDirectoryMaps() { if(directoryMaps.isEmpty()) ensureDirectoryMapsHelper(); }
 };
 
 #endif // XDGICONTHEME_P_H

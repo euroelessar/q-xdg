@@ -92,6 +92,7 @@ XdgIconData *XdgIconThemePrivate::lookupIconRecursive(const QString &originName,
     if (themeSet.contains(this))
         return data;
     themeSet.insert(this);
+    const_cast<XdgIconThemePrivate*>(this)->ensureDirectoryMaps();
 
     QString baseName = originName.section(QLatin1Char('-'), 0, 0);
     QString nameWithoutBase = originName.mid(baseName.count(), -1) + ".";
@@ -245,6 +246,27 @@ uint XdgIconThemePrivate::dirSizeDistance(const XdgIconDir &dir, uint size)
     return 0;
 }
 
+void XdgIconThemePrivate::ensureDirectoryMapsHelper()
+{
+    foreach (const QDir &basedir, basedirs) {
+        QStringList map;
+        QDir dir = basedir;
+        if (!dir.cd(id)) {
+            directoryMaps << map;
+            continue;
+        }
+        QString dirPath = dir.absolutePath();
+        QDirIterator it(dirPath, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QString name = it.next();
+            if (it.fileInfo().isFile())
+                map << name.mid(dirPath.size() + 1);
+        }
+        map.sort();
+        directoryMaps << map;
+    }
+}
+
 /**
   Creates a new icon theme with the specified list of base directories, ID, and
   <code>index.theme</code> file. If the third parameter is empty or missing,
@@ -303,24 +325,6 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
             dirdata.type = XdgIconDir::Scalable;
         else
             dirdata.type = XdgIconDir::Threshold;
-    }
-
-    foreach (const QDir &basedir, basedirs) {
-        QStringList map;
-        QDir dir = basedir;
-        if (!dir.cd(id)) {
-            d->directoryMaps << map;
-            continue;
-        }
-        QString dirPath = dir.absolutePath();
-        QDirIterator it(dirPath, QDirIterator::Subdirectories);
-        while (it.hasNext()) {
-            QString name = it.next();
-            if (it.fileInfo().isFile())
-                map << name.mid(dirPath.size() + 1);
-        }
-        map.sort();
-        d->directoryMaps << map;
     }
 }
 
