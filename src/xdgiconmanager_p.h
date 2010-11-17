@@ -37,7 +37,7 @@ class XdgIconManagerPrivate : public QSharedData
 public:
     XdgIconManagerPrivate() {}
     XdgIconManagerPrivate(const XdgIconManagerPrivate &o)
-            : rules(o.rules), themes(o.themes), themeIdMap(o.themeIdMap) {}
+			: QSharedData(o), rules(o.rules), themes(o.themes), themeIdMap(o.themeIdMap) {}
     ~XdgIconManagerPrivate();
     QHash<QRegExp, XdgThemeChooser> rules;
     mutable QMap<QString, XdgIconTheme *> themes;
