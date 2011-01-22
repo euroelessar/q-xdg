@@ -96,9 +96,14 @@ QPixmap XdgIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::State 
             QImage image;
             QImageReader reader;
             reader.setFileName(entry->path);
-            reader.setScaledSize(QSize(min, min));
+			QSize minSize(min, min);
+            reader.setScaledSize(minSize);
             reader.read(&image);
             pixmap = QPixmap::fromImage(image);
+			if (pixmap.size() != minSize) {
+				pixmap = pixmap.scaled(minSize, Qt::IgnoreAspectRatio,
+				                       Qt::SmoothTransformation);
+			}
 
             QPixmapCache::insert(key, pixmap);
         }
@@ -151,8 +156,18 @@ bool XdgIconEngine::write(QDataStream &out) const
     return false;
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(4, 7, 0)
+# define IconNameHook 2
+#endif
+
 void XdgIconEngine::virtual_hook(int id, void *data)
 {
-    Q_UNUSED(id);
-    Q_UNUSED(data);
+	switch (id) {
+	case IconNameHook:
+		*reinterpret_cast<QString*>(data) = d->name;
+		break;
+	default:
+		QIconEngineV2::virtual_hook(id, data);
+		break;
+	}
 }

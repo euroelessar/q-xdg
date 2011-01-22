@@ -197,6 +197,7 @@ const XdgIconTheme *XdgIconManager::defaultTheme() const
             break;
         }
     }
+	qDebug("!!!!!!! '%s' '%p' '%s'", env.constData(), chooser, qPrintable(chooser ? (*chooser)() : QString()));
 
     if(!chooser) {
         if (qgetenv("KDE_FULL_SESSION") == "true")
