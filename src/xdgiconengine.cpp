@@ -162,6 +162,8 @@ bool XdgIconEngine::write(QDataStream &out) const
 
 void XdgIconEngine::virtual_hook(int id, void *data)
 {
+	if (!d)
+		return;
 	switch (id) {
 	case IconNameHook:
 		*reinterpret_cast<QString*>(data) = d->name;
