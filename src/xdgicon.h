@@ -22,7 +22,7 @@
 #include <QtGui/QIcon>
 #include "xdgexport.h"
 
-class XdgIconTheme;
+class XdgIconManager;
 
 /**
   @brief <code>QIcon</code> implementation backed by a theme
@@ -34,7 +34,7 @@ class XdgIconTheme;
 class XDG_API XdgIcon : public QIcon
 {
 public:
-    XdgIcon(const QString &name, const XdgIconTheme *theme);
+    XdgIcon(const QString &id, const QString &theme, const XdgIconManager *manager);
     XdgIcon(const QIcon &other);
     XdgIcon();
     ~XdgIcon();

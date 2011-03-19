@@ -32,7 +32,7 @@ struct XdgIconDir
         Fixed = 0,
         Scalable = 1,
         Threshold = 2
-                };
+	};
 
     QString path;
     uint size;
@@ -59,19 +59,16 @@ struct XdgIconEntry
 class XdgIconData
 {
 public:
-    QAtomicInt ref;
     QList<XdgIconEntry> entries;
-    const XdgIconThemePrivate *theme;
     QString name;
 
     const XdgIconEntry *findEntry(uint size) const;
-    bool destroy();
 };
 
 /**
   @private
 */
-typedef QHash<QString, XdgIconData *> XdgIconDataHash;
+typedef QHash<QStringRef, XdgIconData> XdgIconDataHash;
 
 /**
   @private
@@ -79,6 +76,7 @@ typedef QHash<QString, XdgIconData *> XdgIconDataHash;
 class XdgIconThemePrivate
 {
 public:
+	XdgIconManager *manager;
     QString id;
     QString name;
     QString example;
@@ -87,19 +85,19 @@ public:
     QStringList parentNames;
     QVector<XdgIconDir> subdirs;
     QVector<const XdgIconTheme *> parents;
-	QList<QStringList> directoryMaps;
-    mutable XdgIconDataHash cache;
+	mutable QString buffer;
+	mutable XdgIconDataHash icons;
 
     XdgIconData *findIcon(const QString &name) const;
     QString findIcon(const QString &name, uint size) const;
-    XdgIconData *lookupIconRecursive(const QString &name, QSet<const XdgIconThemePrivate*> &themeSet) const;
+    XdgIconData *lookupIconRecursive(const QString &name, QList<const XdgIconThemePrivate*> &themeSet) const;
     XdgIconData *tryCache(const QString &name) const;
     void saveToCache(const QString &originName, XdgIconData *data) const;
     QString lookupFallbackIcon(const QString &name) const;
     static bool dirMatchesSize(const XdgIconDir &dir, uint size);
     static uint dirSizeDistance(const XdgIconDir &dir, uint size);
-	void ensureDirectoryMapsHelper();
-	inline void ensureDirectoryMaps() { if(directoryMaps.isEmpty()) ensureDirectoryMapsHelper(); }
+	void ensureDirectoryMapsHelper() const;
+	inline void ensureDirectoryMaps() const { if(icons.isEmpty()) ensureDirectoryMapsHelper(); }
 };
 
 #endif // XDGICONTHEME_P_H

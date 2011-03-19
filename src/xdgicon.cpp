@@ -25,8 +25,8 @@
   backed by the specified theme. The icon is invalidated if the theme is
   destroyed. Equivalent to calling <code>XdgIconTheme::getIcon()</code>.
 */
-XdgIcon::XdgIcon(const QString &name, const XdgIconTheme *theme)
-        : QIcon(new XdgIconEngine(theme->data()->findIcon(name)))
+XdgIcon::XdgIcon(const QString &id, const QString &theme, const XdgIconManager *manager)
+        : QIcon(new XdgIconEngine(id, theme, manager))
 {
 }
 

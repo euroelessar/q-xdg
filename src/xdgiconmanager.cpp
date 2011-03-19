@@ -30,7 +30,7 @@
   @arg appDirs: Optional. Specifies custom directories to search for icons
     and icon themes in, in addition to system default directories.
 */
-XdgIconManager::XdgIconManager(const QList<QDir> &appDirs) : d(new XdgIconManagerPrivate)
+XdgIconManager::XdgIconManager(const QList<QDir> &appDirs) : d(new XdgIconManagerPrivate(this))
 {
     d->rules.insert(QRegExp(QLatin1String("gnome"), Qt::CaseInsensitive), &xdgGetGnomeTheme);
     d->rules.insert(QRegExp(QLatin1String("kde"), Qt::CaseInsensitive), &xdgGetKdeTheme);
@@ -43,23 +43,7 @@ XdgIconManager::XdgIconManager(const QList<QDir> &appDirs) : d(new XdgIconManage
 */
 XdgIconManager::~XdgIconManager()
 {
-}
-
-/**
-  Copy constructor. Creates an icon manager object based on this one.
-*/
-XdgIconManager::XdgIconManager(const XdgIconManager &other) : d(other.d)
-{
-}
-
-/**
-  Assignment operator. Makes this icon manager object a copy of
-  <code>other</code>.
-*/
-XdgIconManager &XdgIconManager::operator =(const XdgIconManager &other)
-{
-    d = other.d;
-    return *this;
+	delete d;
 }
 
 void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
@@ -108,7 +92,7 @@ void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
                     QMap<QString, XdgIconTheme *>::const_iterator it = themes.constFind(name);
                     XdgIconTheme *theme;
                     if (it == themes.constEnd()) {
-                        theme = new XdgIconTheme(basedirs, subdir.fileName(), index);
+                        theme = new XdgIconTheme(basedirs, subdir.fileName(), q, index);
                         themes.insert(name, theme);
                     } else
                         theme = it.value();
@@ -123,7 +107,7 @@ void XdgIconManagerPrivate::init(const QList<QDir> &appDirs)
 
     if (!hicolor) {
         // create empty theme - hicolor will be guaranteed to always exist
-        XdgIconTheme *newTheme = new XdgIconTheme(basedirs, hicolorString);
+        XdgIconTheme *newTheme = new XdgIconTheme(basedirs, hicolorString, q);
         themes.insert(hicolorString, newTheme);
         themeIdMap.insert(hicolorString, newTheme);
         hicolor = newTheme;
@@ -209,6 +193,18 @@ const XdgIconTheme *XdgIconManager::defaultTheme() const
     return themeById(chooser ? (*chooser)() : QLatin1String("hicolor"));
 }
 
+void XdgIconManager::setCurrentTheme(const QString &id)
+{
+	d->currentTheme = themeById(id);
+}
+
+const XdgIconTheme *XdgIconManager::currentTheme() const
+{
+	if (!d->currentTheme)
+		d->currentTheme = defaultTheme();
+	return d->currentTheme;
+}
+
 /**
   Returns a theme by its human-readable name (like "GNOME Noble"), or 0 if no
   theme with this name was found.
@@ -259,19 +255,15 @@ QStringList XdgIconManager::themeNames(bool showHidden) const
 */
 QStringList XdgIconManager::themeIds(bool showHidden) const
 {
-    if (showHidden) {
+    if (showHidden)
         return QStringList(d->themeIdMap.keys());
-    }
-
+	
     QStringList out;
-
-    foreach (QString themeId, d->themes.keys()) {
-        const XdgIconTheme *theme = themeById(themeId);
-
-        if (theme && !theme->hidden()) {
-            out.append(themeId);
-        }
-    }
-
+	QMapIterator<QString, XdgIconTheme *> it(d->themeIdMap);
+	while (it.hasNext()) {
+		const XdgIconTheme *theme = it.next().value();
+		if (!theme->hidden())
+			out << it.key();
+	}
     return out;
 }

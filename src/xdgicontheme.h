@@ -28,6 +28,7 @@
 #include "xdgicon.h"
 
 class XdgIconThemePrivate;
+class XdgIconManager;
 class XdgIconManagerPrivate;
 
 /**
@@ -41,9 +42,9 @@ class XDG_API XdgIconTheme
     Q_DECLARE_PRIVATE_D(p, XdgIconTheme)
     Q_DISABLE_COPY(XdgIconTheme)
 public:
-    XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, const QString &indexFileName = QString());
     virtual ~XdgIconTheme();
 
+	XdgIconManager *manager() const;
     QString id() const;
     QString name() const;
     QString exampleName() const;
@@ -57,8 +58,8 @@ public:
     /**
       Returns an icon with the specified name (e.g. "document-new").
     */
-    inline QIcon getIcon(const QString &name) const
-    { return XdgIcon(name, this); }
+    inline QIcon getIcon(const QString &iconName) const
+    { return XdgIcon(iconName, id(), manager()); }
 
     /**
       Convenience function.
@@ -66,8 +67,8 @@ public:
       Returns a pixmap with the specified name (e.g. "document-new") and size
       (in pixels).
     */
-    inline QPixmap getPixmap(const QString &name, int size) const
-    { return getIcon(name).pixmap(size); }
+    inline QPixmap getPixmap(const QString &iconName, int size) const
+    { return getIcon(iconName).pixmap(size); }
 
     /**
       Convenience function.
@@ -76,15 +77,18 @@ public:
       (in pixels). The pixmap can be smaller than the requested size if it is
       not square, but never larger.
     */
-    inline QPixmap getPixmap(const QString &name, QSize size) const
-    { return getIcon(name).pixmap(size); }
+    inline QPixmap getPixmap(const QString &iconName, QSize size) const
+    { return getIcon(iconName).pixmap(size); }
 #endif
+protected:
+    XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, XdgIconManager *manager, const QString &indexFileName = QString());
 private:
 #ifdef QT_GUI_LIB
     friend class XdgIcon;
 #endif
 	friend class XdgIconManagerPrivate;
     XdgIconThemePrivate *p;
+public:
     typedef XdgIconThemePrivate * Data;
     const Data &data() const { return p; }
 };

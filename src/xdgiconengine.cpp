@@ -17,6 +17,8 @@
 */
 
 #include "xdgiconengine_p.h"
+#include "xdgiconmanager.h"
+#include "xdgicontheme_p.h"
 #include <QtGui/QPixmapCache>
 #include <QtGui/QPainter>
 #include <QtGui/QImageReader>
@@ -25,19 +27,13 @@
 #include <QtGui/QStyleOption>
 #include <QtGui/QStyle>
 
-XdgIconEngine::XdgIconEngine(XdgIconData *data)
+XdgIconEngine::XdgIconEngine(const QString &id, const QString &theme, const XdgIconManager *manager)
+    : m_id(id), m_theme(theme), m_manager(manager)
 {
-    d = data;
-    if (d)
-        d->ref.ref();
 }
 
 XdgIconEngine::~XdgIconEngine()
 {
-    if (d && !d->ref.deref() && !d->theme) {
-        delete d;
-        d = 0;
-    }
 }
 
 void XdgIconEngine::paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state)
@@ -47,21 +43,16 @@ void XdgIconEngine::paint(QPainter *painter, const QRect &rect, QIcon::Mode mode
 
 QSize XdgIconEngine::actualSize(const QSize &size, QIcon::Mode, QIcon::State)
 {
-    int min = qMin(size.width(), size.height());
-    const XdgIconEntry *entry = d ? d->findEntry(min) : 0;
-    if (entry) {
-        if (entry->dir->type == XdgIconDir::Scalable)
-            return QSize(min, min);
-        else
-            return QSize(entry->dir->size, entry->dir->size);
-    }
-    return QSize();
+	XdgIconData *d = data();
+	return d ? size : QSize();
 }
 
 QPixmap XdgIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state)
 {
     Q_UNUSED(state);
-
+	
+	const XdgIconTheme *th = 0;
+	XdgIconData *d = data(&th);
     QPixmap pixmap;
     if (!size.isValid() || !d)
         return pixmap;
@@ -74,6 +65,8 @@ QPixmap XdgIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::State 
         // TODO: Think about how to use QIcon::State,
 		// Qt's default implementation doesn't hold it
 //        key += QString::number(state);
+		key += th->id();
+        key += QLatin1Char('_');
         key += QString::number(min);
         key += QString::number(QApplication::palette().cacheKey());
         key += QLatin1Char('_');
@@ -139,7 +132,7 @@ QString XdgIconEngine::key() const
 
 QIconEngineV2 *XdgIconEngine::clone() const
 {
-    return new XdgIconEngine(d);
+    return new XdgIconEngine(m_id, m_theme, m_manager);
 }
 
 // TODO: There may be different IconManager's, which we should use?..
@@ -162,6 +155,7 @@ bool XdgIconEngine::write(QDataStream &out) const
 
 void XdgIconEngine::virtual_hook(int id, void *data)
 {
+	XdgIconData *d = XdgIconEngine::data();
 	if (!d)
 		return;
 	switch (id) {
@@ -172,4 +166,12 @@ void XdgIconEngine::virtual_hook(int id, void *data)
 		QIconEngineV2::virtual_hook(id, data);
 		break;
 	}
+}
+
+XdgIconData *XdgIconEngine::data(const XdgIconTheme **th) const
+{
+	const XdgIconTheme *theme = m_theme.isEmpty() ? m_manager->currentTheme() : m_manager->themeById(m_theme);
+	if (th)
+		*th = theme;
+	return theme->data()->findIcon(m_id);
 }

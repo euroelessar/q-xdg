@@ -32,16 +32,16 @@ inline uint qHash(const QRegExp &regexp)
 /**
   @private
 */
-class XdgIconManagerPrivate : public QSharedData
+class XdgIconManagerPrivate
 {
 public:
-    XdgIconManagerPrivate() {}
-    XdgIconManagerPrivate(const XdgIconManagerPrivate &o)
-			: QSharedData(o), rules(o.rules), themes(o.themes), themeIdMap(o.themeIdMap) {}
+    XdgIconManagerPrivate(XdgIconManager *qp) : q(qp), currentTheme(0) {}
     ~XdgIconManagerPrivate();
+	XdgIconManager *q;
     QHash<QRegExp, XdgThemeChooser> rules;
     mutable QMap<QString, XdgIconTheme *> themes;
     mutable QMap<QString, XdgIconTheme *> themeIdMap;
+	mutable const XdgIconTheme *currentTheme;
 
     void init(const QList<QDir> &appDirs);
 };
@@ -49,10 +49,10 @@ public:
 XdgIconManagerPrivate::~XdgIconManagerPrivate()
 {
     // There sometimes equal values for different keys, i.e. because of fallback
-    QSet<XdgIconData *> allData;
-    foreach (XdgIconTheme *theme, themes)
-        allData |= QSet<XdgIconData *>::fromList(theme->p->cache.values());
-    qDeleteAll(allData);
+//    QSet<XdgIconData *> allData;
+//    foreach (XdgIconTheme *theme, themes)
+//        allData |= QSet<XdgIconData *>::fromList(theme->p->cache.values());
+//    qDeleteAll(allData);
 
     // FIXME: May be it will be better to carry all XdgIconTheme's in some list?..
     QSet<XdgIconTheme *> allThemes;

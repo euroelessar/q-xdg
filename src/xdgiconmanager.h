@@ -39,23 +39,31 @@ class XdgIconManagerPrivate;
 */
 class XDG_API XdgIconManager
 {
+	Q_DISABLE_COPY(XdgIconManager)
 public:
     XdgIconManager(const QList<QDir> &appDirs = QList<QDir>());
     virtual ~XdgIconManager();
 
-    XdgIconManager(const XdgIconManager &other);
-    XdgIconManager &operator =(const XdgIconManager &other);
-
     void clearRules();
     void installRule(const QRegExp &regexp, XdgThemeChooser chooser);
     const XdgIconTheme *defaultTheme() const;
+	void setCurrentTheme(const QString &id);
+	const XdgIconTheme *currentTheme() const;
     const XdgIconTheme *themeByName(const QString &themeName) const;
     const XdgIconTheme *themeById(const QString &themeId) const;
+	
+#ifdef QT_GUI_LIB
+    /**
+      Returns an icon with the specified name (e.g. "document-new").
+    */
+    inline QIcon getIcon(const QString &iconName) const
+    { return XdgIcon(iconName, QString(), this); }
+#endif	
 
     QStringList themeNames(bool showHidden = false) const;
     QStringList themeIds(bool showHidden = false) const;
 private:
-    QSharedDataPointer<XdgIconManagerPrivate> d;
+    XdgIconManagerPrivate *d;
 };
 
 #endif // XDGICONMANAGER_H

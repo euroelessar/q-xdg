@@ -56,141 +56,36 @@ const XdgIconEntry *XdgIconData::findEntry(uint size) const
     return entry;
 }
 
-bool XdgIconData::destroy()
-{
-    entries.clear();
-    name.clear();
-    theme = 0;
-    return !ref;
-}
-
 XdgIconData *XdgIconThemePrivate::findIcon(const QString &name) const
 {
-    QString key = id;
-    key += QLatin1Char('\0');
-    key += name;
-
-    XdgIconData *data = 0;
-
-    XdgIconDataHash::const_iterator it = cache.constFind(key);
-    if (it != cache.constEnd()) {
-        data = it.value();
-    } else {
-        QSet<const XdgIconThemePrivate*> themeSet;
-        data = lookupIconRecursive(name, themeSet);
-        cache.insert(key, data);
-    }
-
-    return data;
+	QList<const XdgIconThemePrivate*> themeSet;
+	return lookupIconRecursive(name, themeSet);
 }
 
 XdgIconData *XdgIconThemePrivate::lookupIconRecursive(const QString &originName,
-                                                      QSet<const XdgIconThemePrivate*> &themeSet) const
+                                                      QList<const XdgIconThemePrivate*> &themeSet) const
 {
-    XdgIconData *data = 0;
-
     if (themeSet.contains(this))
-        return data;
-    themeSet.insert(this);
-    const_cast<XdgIconThemePrivate*>(this)->ensureDirectoryMaps();
-
-    QString baseName = originName.section(QLatin1Char('-'), 0, 0);
-    QString nameWithoutBase = originName.mid(baseName.count(), -1) + ".";
-    for (int i = 0; i < directoryMaps.size(); i++) {
-        const QStringList &map = directoryMaps.at(i);
-        for (int j = 0; j < subdirs.size(); j++) {
-            const XdgIconDir &dirdata = subdirs.at(j);
-            QString baseIconPath = dirdata.path + QLatin1Char('/') + baseName;
-            QStringList::const_iterator it;
-            QStringList::const_iterator end = map.constEnd();
-            it = qLowerBound(map, baseIconPath);
-            if (it == end)
-                continue;
-            for (; it != end; ++it) {
-                if (!it->startsWith(baseIconPath))
-                    break;
-                QString name = it->section('/', -1, -1);
-                int index = name.lastIndexOf(QLatin1Char('.'));
-                if (index < 0)
-                    continue;
-                name.truncate(index);
-                if (name == originName
-                    || (name.size() < originName.size() 
-                        && originName.startsWith(name)
-                        && originName.at(name.size()) == '-')) {
-                    if (!data) {
-                        data = new XdgIconData;
-                        data->theme = this;
-                        data->name = name;
-                    }
-                    if (data->name.size() > name.size()) {
-                        continue;
-                    } else if (data->name.size() < name.size()) {
-                        data->name = name;
-                        data->entries.clear();
-                    }
-                    QString filePath = basedirs.at(i).absolutePath();
-                    filePath += QLatin1Char('/');
-                    filePath += id;
-                    filePath += QLatin1Char('/');
-                    filePath += *it;
-                    data->entries.append(XdgIconEntry(&dirdata, QDir::cleanPath(filePath)));
-                    break;
-                }
-                if (it->mid(baseIconPath.length(), -1).startsWith(nameWithoutBase))
-                    break;
-            }
-        }
-    }
-
-    if (!data) {
-        foreach (const XdgIconTheme *parent, parents) {
-            data = parent->d_func()->lookupIconRecursive(originName, themeSet);
-            if (data)
-                break;
-        }
-    }
-
-    if (!data) {
-        saveToCache(originName, 0);
-    } else {
-        QString name = originName;
-        while (name.size() >= data->name.size()) {
-            saveToCache(name, data);
-            name.truncate(name.lastIndexOf('-'));
-        }
-    }
-
-    return data;
-}
-
-XdgIconData *XdgIconThemePrivate::tryCache(const QString &name) const
-{
-    QString key;
-    key.reserve(id.size() + name.size() + 1);
-    key += id;
-    key += QLatin1Char('\0');
-    key += name;
-
-    return cache.value(key, 0);
-}
-
-void XdgIconThemePrivate::saveToCache(const QString &originName, XdgIconData *data) const
-{
-    QString name = originName;
-    QString key = id;
-    key += QLatin1Char('\0');
-    while (!name.isEmpty() && (name.size() >= (data ? data->name.size() : 0))) {
-        key += name;
-        cache.insert(key, data);
-
-        int pos = name.lastIndexOf(QLatin1Char('-'));
-        if (pos == -1)
-            return;
-
-        key.truncate(id.size() + 1);
-        name.truncate(pos);
-    }
+        return 0;
+    themeSet.append(this);
+    ensureDirectoryMaps();
+	QStringRef iconName(&originName);
+	while (!iconName.isEmpty()) {
+		XdgIconDataHash::Iterator it = icons.find(iconName);
+		if (it != icons.end())
+			return &it.value();
+		int index = originName.lastIndexOf('-', iconName.size() - 1);
+		if (index <= 0)
+			iconName = QStringRef();
+		else
+			iconName = QStringRef(&originName, 0, index);
+	}
+	foreach (const XdgIconTheme *parent, parents) {
+		XdgIconData *data = parent->d_func()->lookupIconRecursive(originName, themeSet);
+		if (data)
+			return data;
+	}
+    return 0;
 }
 
 QString XdgIconThemePrivate::lookupFallbackIcon(const QString &name) const
@@ -246,25 +141,45 @@ uint XdgIconThemePrivate::dirSizeDistance(const XdgIconDir &dir, uint size)
     return 0;
 }
 
-void XdgIconThemePrivate::ensureDirectoryMapsHelper()
+void XdgIconThemePrivate::ensureDirectoryMapsHelper() const
 {
     foreach (const QDir &basedir, basedirs) {
-        QStringList map;
         QDir dir = basedir;
-        if (!dir.cd(id)) {
-            directoryMaps << map;
+        if (!dir.cd(id))
             continue;
-        }
         QString dirPath = dir.absolutePath();
         QDirIterator it(dirPath, QDirIterator::Subdirectories);
         while (it.hasNext()) {
-            QString name = it.next();
-            if (it.fileInfo().isFile())
-                map << name.mid(dirPath.size() + 1);
+            it.next();
+			QFileInfo info = it.fileInfo();
+            if (info.isFile()) {
+				const XdgIconDir *dir = 0;
+				QString dirPath = info.path();
+				for (int i = 0; i < subdirs.size(); i++) {
+					if (dirPath.endsWith(subdirs.at(i).path)) {
+						dir = &subdirs.at(i);
+						break;
+					}
+				}
+				if (!dir) {
+					qWarning("QXdg: \"%s\" is unknown dir", qPrintable(info.absolutePath()));
+					continue;
+				}
+				QString name = info.baseName();
+				XdgIconDataHash::Iterator it = icons.find(QStringRef(&name));
+				QString path = info.absoluteFilePath();
+				if (it == icons.end()) {
+					XdgIconData data;
+					data.name = name;
+					QStringRef iconName(&buffer, buffer.size(), name.size());
+					buffer.append(name);
+					it = icons.insert(iconName, data);
+				}
+				it.value().entries << XdgIconEntry(dir, path);
+			}
         }
-        map.sort();
-        directoryMaps << map;
     }
+	buffer.squeeze();
 }
 
 /**
@@ -278,11 +193,12 @@ void XdgIconThemePrivate::ensureDirectoryMapsHelper()
   You will most likely not need to create objects of this class directly.
   Instead, use <code>XdgIconManager</code> to get references to themes.
 */
-XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, const QString &indexFileName)
+XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, XdgIconManager *manager, const QString &indexFileName)
         : p(new XdgIconThemePrivate)
 {
     Q_D(XdgIconTheme);
 
+	d->manager = manager;
     d->id = id;
     d->basedirs = basedirs;
     d->hidden = false;
@@ -299,11 +215,12 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
     settings.beginGroup(QLatin1String("Icon Theme"));
     d->name = settings.value(QLatin1String("Name")).toString();
     d->example = settings.value(QLatin1String("Example")).toString();
-    d->hidden = settings.value(QLatin1String("Hidden")).toBool();
+    d->hidden = settings.value(QLatin1String("Hidden"), false).toBool();
     d->parentNames = settings.value(QLatin1String("Inherits")).toStringList();
     QStringList subdirList = settings.value(QLatin1String("Directories")).toStringList();
     settings.endGroup();
 
+	QSet<QString> set;
     for (int i = 0; i < subdirList.size(); i++) {
         const QString &subdir = subdirList.at(i);
         // The defaults are dictated by the FDO specification
@@ -311,6 +228,7 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
         XdgIconDir &dirdata = d->subdirs.last();
 
         dirdata.path = subdir;
+		set << dirdata.path;
         settings.beginGroup(dirdata.path);
         dirdata.size = settings.value(QLatin1String("Size")).toUInt();
         dirdata.maxsize = settings.value(QLatin1String("MaxSize"), dirdata.size).toUInt();
@@ -326,6 +244,34 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
         else
             dirdata.type = XdgIconDir::Threshold;
     }
+	foreach (QDir basedir, basedirs) {
+		if (!basedir.cd(id))
+			continue;
+		foreach (const QString &size, basedir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+			XdgIconDir dir;
+			if (size == QLatin1String("scalable")) {
+				dir.size = 128;
+				dir.minsize = 1;
+				dir.maxsize = 256;
+				dir.type = XdgIconDir::Scalable;
+			} else if (size.contains('x')) {
+				dir.size = size.section(QLatin1Char('x'), 0, 0).toInt();
+				dir.minsize = dir.maxsize = dir.size;
+			} else {
+				continue;
+			}
+			foreach (const QString &type, QDir(basedir.filePath(size)).entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+				QString path = size;
+				path += QLatin1String("/");
+				path += type;
+				if (set.contains(path))
+					continue;
+				dir.path = path;
+				d->subdirs << dir;
+				set << path;
+			}
+		}
+	}
 }
 
 /**
@@ -334,6 +280,11 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, con
 XdgIconTheme::~XdgIconTheme()
 {
     delete p;
+}
+
+XdgIconManager *XdgIconTheme::manager() const
+{
+	return d_func()->manager;
 }
 
 /**

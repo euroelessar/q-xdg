@@ -22,13 +22,14 @@
 #include <QtGui/QIconEngineV2>
 #include "xdgicontheme_p.h"
 
+class XdgIconManager;
 /**
   @private
 */
 class XdgIconEngine : public QIconEngineV2
 {
 public:
-    XdgIconEngine(XdgIconData *data);
+    XdgIconEngine(const QString &id, const QString &theme, const XdgIconManager *manager);
     virtual ~XdgIconEngine();
 
     virtual void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state);
@@ -44,7 +45,10 @@ public:
     virtual bool write(QDataStream &out) const;
     virtual void virtual_hook(int id, void *data);
 protected:
-    XdgIconData *d;
+	XdgIconData *data(const XdgIconTheme **th = 0) const;
+	QString m_id;
+	QString m_theme;
+	const XdgIconManager *m_manager;
 };
 
 #endif // XDGICONENGINE_P_H
