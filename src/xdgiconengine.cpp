@@ -43,8 +43,11 @@ void XdgIconEngine::paint(QPainter *painter, const QRect &rect, QIcon::Mode mode
 
 QSize XdgIconEngine::actualSize(const QSize &size, QIcon::Mode, QIcon::State)
 {
-	XdgIconData *d = data();
-	return d ? size : QSize();
+	if (data()) {
+		int sizeParams = qMin(size.width(), size.height());
+		return QSize(sizeParams, sizeParams);
+	}
+	return QSize();
 }
 
 QPixmap XdgIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state)
