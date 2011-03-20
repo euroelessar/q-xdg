@@ -162,6 +162,16 @@ void XdgIconEngine::virtual_hook(int id, void *data)
 	if (!d)
 		return;
 	switch (id) {
+	case AvailableSizesHook: {
+		AvailableSizesArgument &arg = *reinterpret_cast<AvailableSizesArgument*>(data);
+		for (int i = 0; i < d->entries.size(); i++) {
+			if (d->entries.at(i).dir->type == XdgIconDir::Scalable)
+				continue;
+			int size = d->entries.at(i).dir->size;
+			arg.sizes.append(QSize(size, size));
+		}
+		break;
+	}
 	case IconNameHook:
 		*reinterpret_cast<QString*>(data) = d->name;
 		break;

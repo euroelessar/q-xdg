@@ -257,6 +257,7 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, Xdg
 			} else if (size.contains('x')) {
 				dir.size = size.section(QLatin1Char('x'), 0, 0).toInt();
 				dir.minsize = dir.maxsize = dir.size;
+				dir.type = XdgIconDir::Threshold;
 			} else {
 				continue;
 			}
