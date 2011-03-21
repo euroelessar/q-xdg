@@ -22,6 +22,8 @@
 #include "xdgicontheme.h"
 #include <QHash>
 
+class QSettings;
+
 /**
   @private
 */
@@ -33,6 +35,8 @@ struct XdgIconDir
         Scalable = 1,
         Threshold = 2
 	};
+	XdgIconDir() : size(0), type(Threshold), maxsize(0), minsize(0), threshold(0) {}
+	void fill(QSettings &settings);
 
     QString path;
     uint size;
@@ -60,7 +64,7 @@ class XdgIconData
 {
 public:
     QList<XdgIconEntry> entries;
-    QString name;
+    QStringRef name;
 
     const XdgIconEntry *findEntry(uint size) const;
 };
@@ -69,6 +73,7 @@ public:
   @private
 */
 typedef QHash<QStringRef, XdgIconData> XdgIconDataHash;
+typedef QMap<QString, XdgIconDir> XdgIconDirHash;
 
 /**
   @private
@@ -83,7 +88,7 @@ public:
     bool hidden;
     QVector<QDir> basedirs;
     QStringList parentNames;
-    QVector<XdgIconDir> subdirs;
+    XdgIconDirHash subdirs;
     QVector<const XdgIconTheme *> parents;
 	mutable QString buffer;
 	mutable XdgIconDataHash icons;

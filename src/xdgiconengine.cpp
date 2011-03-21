@@ -173,7 +173,7 @@ void XdgIconEngine::virtual_hook(int id, void *data)
 		break;
 	}
 	case IconNameHook:
-		*reinterpret_cast<QString*>(data) = d->name;
+		*reinterpret_cast<QString*>(data) = d->name.toString();
 		break;
 	default:
 		QIconEngineV2::virtual_hook(id, data);

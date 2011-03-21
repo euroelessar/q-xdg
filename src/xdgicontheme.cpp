@@ -20,8 +20,12 @@
 #include <QtCore/QSettings>
 #include <QtCore/QSet>
 #include <QtCore/QDirIterator>
+#include <QtCore/QDateTime>
+#include <QtCore/QDataStream>
+#include <QtCore/QVector>
 #include "xdgicontheme_p.h"
 #include "xdgicon.h"
+#include "xdgenvironment.h"
 
 namespace
 {
@@ -143,6 +147,58 @@ uint XdgIconThemePrivate::dirSizeDistance(const XdgIconDir &dir, uint size)
 
 void XdgIconThemePrivate::ensureDirectoryMapsHelper() const
 {
+	QDir dataDir = XdgEnvironment::dataHome();
+	if (!dataDir.cd(QLatin1String("qxdg"))) {
+		dataDir.mkdir(QLatin1String("qxdg"));
+		dataDir.cd(QLatin1String("qxdg"));
+	}
+	QString cachePath = dataDir.filePath(id + QLatin1String(".cache"));
+	QFile file(cachePath);
+	bool ok = false;
+	if (file.exists()) {
+		ok = true;
+		QDateTime checkTime = QFileInfo(cachePath).lastModified();
+		for (int i = 0; ok && i < basedirs.size(); i++) {
+			QFileInfo info = basedirs.at(i).absolutePath();
+			ok &= info.lastModified() <= checkTime;
+		}
+		if (ok && file.open(QIODevice::ReadOnly)) {
+			QDataStream in(&file);
+			in.setVersion(QDataStream::Qt_4_2);
+			int count = 0, entriesCount = 0, len = 0, dirIndex = 0;
+			QString path;
+			in >> count;
+			QVector<const XdgIconDir *> dirs(count);
+			for (int i = 0; ok && i < count; i++) {
+				in >> path;
+				XdgIconDirHash::ConstIterator it = subdirs.constFind(path);
+				ok &= in.status() == QDataStream::Ok && it != subdirs.constEnd();
+				if (ok) dirs[i] = &it.value();
+			}
+			in >> buffer >> count;
+			icons.reserve(count);
+			int index = 0;
+			for (int i = 0; ok && i < count; i++) {
+				in >> index >> len;
+				ok &= in.status() == QDataStream::Ok;
+				QStringRef iconName(&buffer, index, len);
+				XdgIconData data;
+				data.name = iconName;
+				in >> entriesCount;
+				for (int j = 0; ok && j < entriesCount; j++) {
+					in >> path >> dirIndex;
+					ok &= in.status() == QDataStream::Ok;
+					data.entries.append(XdgIconEntry(dirs[dirIndex], path));
+				}
+				icons.insert(iconName, data);
+			}
+			file.close();
+		}
+	}
+	if (ok)
+		return;
+	buffer.clear();
+	icons.clear();
     foreach (const QDir &basedir, basedirs) {
         QDir dir = basedir;
         if (!dir.cd(id))
@@ -153,25 +209,20 @@ void XdgIconThemePrivate::ensureDirectoryMapsHelper() const
             it.next();
 			QFileInfo info = it.fileInfo();
             if (info.isFile()) {
-				const XdgIconDir *dir = 0;
 				QString dirPath = info.path();
-				for (int i = 0; i < subdirs.size(); i++) {
-					if (dirPath.endsWith(subdirs.at(i).path)) {
-						dir = &subdirs.at(i);
-						break;
-					}
-				}
-				if (!dir) {
+				XdgIconDirHash::ConstIterator dirIt = subdirs.find(dir.relativeFilePath(dirPath));
+				if (dirIt == subdirs.end()) {
 					qWarning("QXdg: \"%s\" is unknown dir", qPrintable(info.absolutePath()));
 					continue;
 				}
+				const XdgIconDir *dir = &dirIt.value();
 				QString name = info.baseName();
 				XdgIconDataHash::Iterator it = icons.find(QStringRef(&name));
 				QString path = info.absoluteFilePath();
 				if (it == icons.end()) {
 					XdgIconData data;
-					data.name = name;
 					QStringRef iconName(&buffer, buffer.size(), name.size());
+					data.name = iconName;
 					buffer.append(name);
 					it = icons.insert(iconName, data);
 				}
@@ -180,6 +231,47 @@ void XdgIconThemePrivate::ensureDirectoryMapsHelper() const
         }
     }
 	buffer.squeeze();
+	if (file.open(QIODevice::WriteOnly)) {
+		QDataStream out(&file);
+		out.setVersion(QDataStream::Qt_4_2);
+		QMap<const XdgIconDir*, int> dirsMap;
+		QMapIterator<QString, XdgIconDir> dirIt(subdirs);
+		out << subdirs.size();
+		while (dirIt.hasNext()) {
+			dirIt.next();
+			dirsMap.insert(&dirIt.value(), dirsMap.size());
+			out << dirIt.value().path;
+		}
+		out << buffer << icons.size();
+		XdgIconDataHash::ConstIterator it = icons.constBegin();
+		for (; it != icons.constEnd(); ++it) {
+			out << it.key().position() << it.key().length();
+			const XdgIconData &data = it.value();
+			out << data.entries.size();
+			for (int i = 0; i < data.entries.size(); i++)
+				out << data.entries.at(i).path << dirsMap.value(data.entries.at(i).dir);
+		}
+		file.flush();
+	}
+}
+
+void XdgIconDir::fill(QSettings &settings)
+{
+	// The defaults are dictated by the FDO specification
+	settings.beginGroup(path);
+	size = settings.value(QLatin1String("Size")).toUInt();
+	maxsize = settings.value(QLatin1String("MaxSize"), size).toUInt();
+	minsize = settings.value(QLatin1String("MinSize"), size).toUInt();
+	threshold = settings.value(QLatin1String("Threshold"), 2).toUInt();
+	QString dirType = settings.value(QLatin1String("Type"), QLatin1String("Threshold")).toString();
+	settings.endGroup();
+	
+	if (dirType == QLatin1String("Fixed"))
+        type = XdgIconDir::Fixed;
+    else if (dirType == QLatin1String("Scalable"))
+        type = XdgIconDir::Scalable;
+    else
+        type = XdgIconDir::Threshold;
 }
 
 /**
@@ -220,56 +312,46 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, Xdg
     QStringList subdirList = settings.value(QLatin1String("Directories")).toStringList();
     settings.endGroup();
 
-	QSet<QString> set;
+	QSet<QString> allDirs = settings.childGroups().toSet();
     for (int i = 0; i < subdirList.size(); i++) {
         const QString &subdir = subdirList.at(i);
-        // The defaults are dictated by the FDO specification
-        d->subdirs.append(XdgIconDir());
-        XdgIconDir &dirdata = d->subdirs.last();
-
+		
+        XdgIconDir &dirdata = d->subdirs.insert(subdir, XdgIconDir()).value();
         dirdata.path = subdir;
-		set << dirdata.path;
-        settings.beginGroup(dirdata.path);
-        dirdata.size = settings.value(QLatin1String("Size")).toUInt();
-        dirdata.maxsize = settings.value(QLatin1String("MaxSize"), dirdata.size).toUInt();
-        dirdata.minsize = settings.value(QLatin1String("MinSize"), dirdata.size).toUInt();
-        dirdata.threshold = settings.value(QLatin1String("Threshold"), 2).toUInt();
-        QString type = settings.value(QLatin1String("Type"), QLatin1String("Threshold")).toString();
-        settings.endGroup();
-
-        if (type == QLatin1String("Fixed"))
-            dirdata.type = XdgIconDir::Fixed;
-        else if (type == QLatin1String("Scalable"))
-            dirdata.type = XdgIconDir::Scalable;
-        else
-            dirdata.type = XdgIconDir::Threshold;
+		dirdata.fill(settings);
     }
 	foreach (QDir basedir, basedirs) {
 		if (!basedir.cd(id))
 			continue;
-		foreach (const QString &size, basedir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
-			XdgIconDir dir;
-			if (size == QLatin1String("scalable")) {
-				dir.size = 128;
-				dir.minsize = 1;
-				dir.maxsize = 256;
-				dir.type = XdgIconDir::Scalable;
-			} else if (size.contains('x')) {
-				dir.size = size.section(QLatin1Char('x'), 0, 0).toInt();
-				dir.minsize = dir.maxsize = dir.size;
-				dir.type = XdgIconDir::Threshold;
-			} else {
+		QDirIterator sizeIt(basedir.absolutePath(), QDir::Dirs | QDir::NoDotAndDotDot);
+		while (sizeIt.hasNext()) {
+			QDirIterator it(sizeIt.next(), QDir::Dirs | QDir::NoDotAndDotDot);
+			QString size = sizeIt.fileName();
+			if (size != QLatin1String("scalable") && !size.contains('x'))
 				continue;
-			}
-			foreach (const QString &type, QDir(basedir.filePath(size)).entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
-				QString path = size;
-				path += QLatin1String("/");
-				path += type;
-				if (set.contains(path))
+			QScopedPointer<XdgIconDir> sizeDir;
+			while (it.hasNext()) {
+				QString path = basedir.relativeFilePath(it.next());
+				if (d->subdirs.contains(path))
 					continue;
-				dir.path = path;
-				d->subdirs << dir;
-				set << path;
+				if (!sizeDir && allDirs.contains(path)) {
+					sizeDir.reset(new XdgIconDir);
+					sizeDir->fill(settings);
+				} else if (!sizeDir) {
+					sizeDir.reset(new XdgIconDir);
+					if (size == QLatin1String("scalable")) {
+						sizeDir->size = 128;
+						sizeDir->minsize = 1;
+						sizeDir->maxsize = 256;
+						sizeDir->type = XdgIconDir::Scalable;
+					} else if (size.contains('x')) {
+						sizeDir->size = size.section(QLatin1Char('x'), 0, 0).toInt();
+						sizeDir->minsize = sizeDir->maxsize = sizeDir->size;
+						sizeDir->type = XdgIconDir::Threshold;
+					}
+				}
+				sizeDir->path = path;
+				d->subdirs.insert(path, *sizeDir);
 			}
 		}
 	}
