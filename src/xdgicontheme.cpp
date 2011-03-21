@@ -327,8 +327,6 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, Xdg
 		while (sizeIt.hasNext()) {
 			QDirIterator it(sizeIt.next(), QDir::Dirs | QDir::NoDotAndDotDot);
 			QString size = sizeIt.fileName();
-			if (size != QLatin1String("scalable") && !size.contains('x'))
-				continue;
 			QScopedPointer<XdgIconDir> sizeDir;
 			while (it.hasNext()) {
 				QString path = basedir.relativeFilePath(it.next());
@@ -338,16 +336,19 @@ XdgIconTheme::XdgIconTheme(const QVector<QDir> &basedirs, const QString &id, Xdg
 					sizeDir.reset(new XdgIconDir);
 					sizeDir->fill(settings);
 				} else if (!sizeDir) {
-					sizeDir.reset(new XdgIconDir);
 					if (size == QLatin1String("scalable")) {
+						sizeDir.reset(new XdgIconDir);
 						sizeDir->size = 128;
 						sizeDir->minsize = 1;
 						sizeDir->maxsize = 256;
 						sizeDir->type = XdgIconDir::Scalable;
 					} else if (size.contains('x')) {
+						sizeDir.reset(new XdgIconDir);
 						sizeDir->size = size.section(QLatin1Char('x'), 0, 0).toInt();
 						sizeDir->minsize = sizeDir->maxsize = sizeDir->size;
 						sizeDir->type = XdgIconDir::Threshold;
+					} else {
+						continue;
 					}
 				}
 				sizeDir->path = path;
