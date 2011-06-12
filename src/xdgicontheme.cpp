@@ -114,7 +114,8 @@ bool XdgIconThemePrivate::dirMatchesSize(const XdgIconDir &dir, uint size)
     case XdgIconDir::Fixed:
         return size == dir.size;
     case XdgIconDir::Scalable:
-        return (size >= dir.minsize) && (size <= dir.maxsize);
+		return false;
+//        return (size >= dir.minsize) && (size <= dir.maxsize);
     case XdgIconDir::Threshold:
         return (size >= dir.size - dir.threshold) && (size <= dir.size + dir.threshold);
     }
