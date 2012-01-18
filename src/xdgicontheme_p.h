@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2009 Nigmatullin Ruslan <euroelessar@ya.ru>
+    Copyright © 2009 Ruslan Nigmatullin <euroelessar@yandex.ru>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
