@@ -19,13 +19,13 @@
 #include "xdgiconengine_p.h"
 #include "xdgiconmanager.h"
 #include "xdgicontheme_p.h"
-#include <QtGui/QPixmapCache>
-#include <QtGui/QPainter>
-#include <QtGui/QImageReader>
-#include <QtGui/QApplication>
-#include <QtGui/QPalette>
-#include <QtGui/QStyleOption>
-#include <QtGui/QStyle>
+#include <QPixmapCache>
+#include <QPainter>
+#include <QImageReader>
+#include <QApplication>
+#include <QPalette>
+#include <QStyleOption>
+#include <QStyle>
 
 XdgIconEngine::XdgIconEngine(const QString &id, const QString &theme, const XdgIconManager *manager)
     : m_id(id), m_theme(theme), m_manager(manager)
@@ -133,7 +133,7 @@ QString XdgIconEngine::key() const
     return QLatin1String("XdgIconEngine");
 }
 
-QIconEngineV2 *XdgIconEngine::clone() const
+IconEngineBase *XdgIconEngine::clone() const
 {
     return new XdgIconEngine(m_id, m_theme, m_manager);
 }
@@ -176,7 +176,7 @@ void XdgIconEngine::virtual_hook(int id, void *data)
 		*reinterpret_cast<QString*>(data) = d->name.toString();
 		break;
 	default:
-		QIconEngineV2::virtual_hook(id, data);
+		IconEngineBase::virtual_hook(id, data);
 		break;
 	}
 }

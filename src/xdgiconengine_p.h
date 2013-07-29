@@ -19,14 +19,24 @@
 #ifndef XDGICONENGINE_P_H
 #define XDGICONENGINE_P_H
 
-#include <QtGui/QIconEngineV2>
+#include <qglobal.h>
+
+#if QT_VERSION_CHECK(5, 0, 0)
+#include <QIconEngine>
+
+typedef QIconEngine IconEngineBase;
+#else
+#include <QIconEngineV2>
+
+typedef QIconEngineV2 IconEngineBase;
+#endif
 #include "xdgicontheme_p.h"
 
 class XdgIconManager;
 /**
   @private
 */
-class XdgIconEngine : public QIconEngineV2
+class XdgIconEngine : public IconEngineBase
 {
 public:
     XdgIconEngine(const QString &id, const QString &theme, const XdgIconManager *manager);
@@ -40,7 +50,7 @@ public:
     virtual void addFile(const QString &fileName, const QSize &size, QIcon::Mode mode, QIcon::State state);
 
     virtual QString key() const;
-    virtual QIconEngineV2 *clone() const;
+    virtual IconEngineBase *clone() const;
     virtual bool read(QDataStream &in);
     virtual bool write(QDataStream &out) const;
     virtual void virtual_hook(int id, void *data);
