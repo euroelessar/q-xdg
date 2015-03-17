@@ -21,7 +21,7 @@
 
 #include <qglobal.h>
 
-#if QT_VERSION_CHECK(5, 0, 0)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QIconEngine>
 
 typedef QIconEngine IconEngineBase;
